@@ -6,11 +6,11 @@ from worker.parsers.transformers import (
     transform_daily_statement,
 )
 
-FIXTURE = Path(__file__).resolve().parents[1] / "worker" / "fixtures" / "daily_sample.csv"
-
 
 def test_transform_daily_statement_generates_account_position_trade_and_cash_flow_documents() -> None:
-    statement = parse_flex_csv(FIXTURE)
+    statement = parse_flex_csv(
+        Path("worker/fixtures/daily_sample.csv")
+    )
     transformed = transform_daily_statement(statement)
 
     assert len(transformed.account_documents) == 1
@@ -42,7 +42,9 @@ def test_transform_daily_statement_generates_account_position_trade_and_cash_flo
 
 
 def test_transform_daily_statement_supports_real_ibkr_fifo_headers() -> None:
-    statement = parse_flex_csv(FIXTURE)
+    statement = parse_flex_csv(
+        Path("worker/fixtures/daily_sample.csv")
+    )
     fifo_row = statement.get_section("FIFO").rows[0]
     fifo_row.pop("RealizedPNL", None)
     fifo_row.pop("UnrealizedPNL", None)
@@ -59,7 +61,9 @@ def test_transform_daily_statement_supports_real_ibkr_fifo_headers() -> None:
 
 
 def test_transform_daily_statement_falls_back_to_mytd_realized_pnl_ytd_when_fifo_realized_is_zero() -> None:
-    statement = parse_flex_csv(FIXTURE)
+    statement = parse_flex_csv(
+        Path("worker/fixtures/daily_sample.csv")
+    )
     fifo_row = statement.get_section("FIFO").rows[0]
     fifo_row["RealizedPNL"] = "0"
     fifo_row["TotalRealizedPnl"] = "0"

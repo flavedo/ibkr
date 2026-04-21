@@ -180,7 +180,6 @@ cp .env.example .env
 ```
 
 如果 Elasticsearch 就是本机默认地址，通常不需要改动；默认值已经对齐当前项目索引名。
-如果要启用登录保护，至少要把 `AUTH_USERNAME`、`AUTH_PASSWORD` 和 `AUTH_SESSION_SECRET` 改成你自己的值；生产环境不会再接受仓库里的公开占位值。
 
 ### 4. 初始化 Elasticsearch 索引
 

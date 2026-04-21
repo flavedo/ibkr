@@ -27,3 +27,6 @@ htmlcov/
 # IDE
 .idea/
 .vscode/
+
+# Local public mirror workspace
+public_repo_staging/

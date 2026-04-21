@@ -37,7 +37,7 @@ cp .env.example .env
 
 ```env
 FLEX_TOKEN=
-FLEX_QUERY_ID_DAILY=你的_daily_query_id
+FLEX_QUERY_ID_DAILY=1419985
 ES_HOST=http://localhost:9200
 ```
 

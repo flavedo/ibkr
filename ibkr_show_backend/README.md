@@ -28,12 +28,6 @@ cp .env.example .env
 - `ES_CASH_FLOW_INDEX=ibkr_cash_flow_records_v1`
 - `ES_PRICE_HISTORY_INDEX=ibkr_symbol_price_history_v1`
 
-如果你要公开部署或打开交易 / 出入金等登录保护接口，也要显式设置：
-
-- `AUTH_USERNAME=你的登录名`
-- `AUTH_PASSWORD=强密码`
-- `AUTH_SESSION_SECRET=长随机字符串`
-
 ## 启动 API
 
 ```bash

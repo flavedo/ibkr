@@ -12,11 +12,6 @@ def pull_daily_incremental(
     es_writer: ElasticsearchWriter,
     flex_client: FlexClient,
 ) -> dict:
-    if not settings.flex_query_id_daily:
-        raise RuntimeError(
-            "FLEX_QUERY_ID_DAILY is missing. Please fill it in ibkr_show_worker/.env before pulling from IBKR."
-        )
-
     with tempfile.NamedTemporaryFile(prefix="ibkr_daily_", suffix=".csv", delete=False) as temp_file:
         downloaded_path = Path(temp_file.name)
 

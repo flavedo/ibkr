@@ -40,7 +40,7 @@ def get_settings() -> Settings:
             "https://ndcdyn.interactivebrokers.com/AccountManagement/FlexWebService",
         ),
         flex_token=os.getenv("FLEX_TOKEN", ""),
-        flex_query_id_daily=os.getenv("FLEX_QUERY_ID_DAILY", ""),
+        flex_query_id_daily=os.getenv("FLEX_QUERY_ID_DAILY", "1419985"),
         flex_user_agent=os.getenv("FLEX_USER_AGENT", "ibkr-show-worker/0.1"),
         flex_poll_interval_seconds=int(os.getenv("FLEX_POLL_INTERVAL_SECONDS", "5")),
         flex_max_poll_retries=int(os.getenv("FLEX_MAX_POLL_RETRIES", "12")),
