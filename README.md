@@ -4,7 +4,7 @@
 
 它做的事情很直接：
 
-- 从 IBKR Flex Query 拉取 `MyDailyData`
+- 从 IBKR Flex Query 拉取 `MyDailyData`。注意：勾选所有指标
 - 解析历史快照和每日增量
 - 幂等写入 Elasticsearch
 - 通过 FastAPI 提供查询接口
