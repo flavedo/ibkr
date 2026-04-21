@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+
+# Coverage
+.coverage
+.coverage.*
+coverage/
+htmlcov/
+
+# Logs
+*.log
+
+# Env files
+.env
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/

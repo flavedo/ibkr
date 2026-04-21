@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic
+elasticsearch>=8,<9
+pytest
+httpx
