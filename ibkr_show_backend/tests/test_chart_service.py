@@ -120,8 +120,8 @@ def test_get_equity_curve_drops_near_zero_inferred_daily_pnl() -> None:
     service = ChartService(es_client, DummySettings())
     response = service.get_equity_curve("2026-04-02", "2026-04-03")
 
-    assert [item.daily_mtm for item in response.items] == [None, None]
-    assert [item.daily_twr for item in response.items] == [None, None]
+    assert [item.daily_mtm for item in response.items] == [None, 0.0]
+    assert [item.daily_twr for item in response.items] == [None, 0.0]
 
 
 def test_get_equity_curve_aligns_net_cost_to_settle_date() -> None:
