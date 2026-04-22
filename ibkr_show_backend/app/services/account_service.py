@@ -65,6 +65,7 @@ class AccountService:
         overview_source["fifo_total_realized_pnl"] = total_realized_pnl
         overview_source["fifo_total_unrealized_pnl"] = total_unrealized_pnl
         overview_source["fifo_total_pnl"] = total_realized_pnl + total_unrealized_pnl
+        overview_source["ytd_twr"] = self._get_ytd_twr(account_id, report_date)
 
         previous_source = dict(hits[1]["_source"]) if len(hits) > 1 else None
         if previous_source is not None:
@@ -91,6 +92,39 @@ class AccountService:
             )
 
         return AccountOverviewResponse(**overview_source)
+
+    def _get_ytd_twr(self, account_id: str, report_date: str) -> float | None:
+        report_year = report_date[:4]
+        response = self.es_client.search(
+            index=self.settings.es_account_index,
+            body={
+                "size": 2000,
+                "query": {
+                    "bool": {
+                        "filter": [
+                            {"term": {"account_id": account_id}},
+                            {"range": {"report_date": {"gte": f"{report_year}-01-01", "lte": report_date}}},
+                        ]
+                    }
+                },
+                "sort": [{"report_date": {"order": "asc"}}],
+                "_source": ["report_date", "cnav_twr"],
+            },
+        )
+
+        twr_values = [
+            float(hit["_source"]["cnav_twr"])
+            for hit in response.get("hits", {}).get("hits", [])
+            if hit.get("_source", {}).get("cnav_twr") is not None
+        ]
+        if not twr_values:
+            return None
+
+        cumulative_return = 1.0
+        for daily_twr in twr_values:
+            cumulative_return *= 1.0 + daily_twr / 100.0
+
+        return (cumulative_return - 1.0) * 100.0
 
     def _get_total_realized_pnl(self, account_id: str, report_date: str) -> float:
         response = self.es_client.search(

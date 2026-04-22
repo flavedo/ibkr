@@ -33,7 +33,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers.add_parser(
         "run-scheduler",
-        help="Run the daily scheduler. It pulls the MyDailyData query every day at 09:00 Asia/Shanghai and ingests it idempotently.",
+        help="Run the daily scheduler. It pulls the MyDailyData query every day at 12:30 Asia/Shanghai and ingests it idempotently.",
     )
 
     return parser
@@ -84,7 +84,7 @@ def main() -> None:
 
     if args.command == "run-scheduler":
         scheduler = create_scheduler()
-        logger.info("starting scheduler; daily MyDailyData incremental job runs daily at 09:00 Asia/Shanghai")
+        logger.info("starting scheduler; daily MyDailyData incremental job runs daily at 12:30 Asia/Shanghai")
         scheduler.start()
         return
 

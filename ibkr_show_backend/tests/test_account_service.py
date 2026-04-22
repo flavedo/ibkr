@@ -52,6 +52,14 @@ def test_get_overview_recomputes_dashboard_pnl_from_trade_and_position_indices()
             },
             {"aggregations": {"total_realized_pnl": {"value": 123.45}}},
             {"aggregations": {"total_unrealized_pnl": {"value": 67.89}}},
+            {
+                "hits": {
+                    "hits": [
+                        {"_source": {"report_date": "2026-01-02", "cnav_twr": 1.0}},
+                        {"_source": {"report_date": "2026-04-17", "cnav_twr": -0.5}},
+                    ]
+                }
+            },
             {"aggregations": {"total_realized_pnl": {"value": 100.0}}},
             {"aggregations": {"total_unrealized_pnl": {"value": 50.0}}},
         ]
@@ -73,6 +81,7 @@ def test_get_overview_recomputes_dashboard_pnl_from_trade_and_position_indices()
     assert overview.fifo_total_unrealized_pnl_delta.amount_change == pytest.approx(17.89)
     assert overview.fifo_total_pnl_delta is not None
     assert overview.fifo_total_pnl_delta.amount_change == pytest.approx(41.34)
+    assert overview.ytd_twr == pytest.approx(0.495)
 
     trade_call = es_client.calls[1]
     assert trade_call["index"] == "trade-index"
@@ -86,4 +95,11 @@ def test_get_overview_recomputes_dashboard_pnl_from_trade_and_position_indices()
     assert position_call["body"]["query"]["bool"]["filter"] == [
         {"term": {"account_id": "U1"}},
         {"term": {"report_date": "2026-04-17"}},
+    ]
+
+    ytd_twr_call = es_client.calls[3]
+    assert ytd_twr_call["index"] == "account-index"
+    assert ytd_twr_call["body"]["query"]["bool"]["filter"] == [
+        {"term": {"account_id": "U1"}},
+        {"range": {"report_date": {"gte": "2026-01-01", "lte": "2026-04-17"}}},
     ]

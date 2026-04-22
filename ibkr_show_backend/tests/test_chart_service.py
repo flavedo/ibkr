@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+import pytest
+
 from app.services.chart_service import ChartService
 
 
@@ -27,8 +29,8 @@ def test_get_equity_curve_builds_equity_pnl_and_net_cost_series() -> None:
                 "hits": {
                     "hits": [
                         {"_source": {"account_id": "U1", "report_date": "2026-04-15", "total_equity": 100.0}},
-                        {"_source": {"account_id": "U1", "report_date": "2026-04-16", "total_equity": 130.0}},
-                        {"_source": {"account_id": "U1", "report_date": "2026-04-17", "total_equity": 150.0}},
+                        {"_source": {"account_id": "U1", "report_date": "2026-04-16", "total_equity": 130.000001}},
+                        {"_source": {"account_id": "U1", "report_date": "2026-04-17", "total_equity": 150.0, "cnav_mtm": -2.0, "cnav_twr": -1.2}},
                     ]
                 }
             },
@@ -41,6 +43,14 @@ def test_get_equity_curve_builds_equity_pnl_and_net_cost_series() -> None:
                                 "settle_date": "2026-04-15",
                                 "report_date": "2026-04-15",
                                 "amount_in_base": 80.0,
+                            }
+                        },
+                        {
+                            "_source": {
+                                "date_time": "2026-04-16T00:00:00",
+                                "settle_date": "2026-04-16",
+                                "report_date": "2026-04-16",
+                                "amount_in_base": 20.0,
                             }
                         },
                         {
@@ -79,9 +89,39 @@ def test_get_equity_curve_builds_equity_pnl_and_net_cost_series() -> None:
     response = service.get_equity_curve(None, None)
 
     assert [item.report_date for item in response.items] == ["2026-04-15", "2026-04-16", "2026-04-17"]
-    assert [item.net_cost for item in response.items] == [80.0, 80.0, 90.0]
-    assert [item.total_pnl for item in response.items] == [20.0, 50.0, 60.0]
+    assert [item.net_cost for item in response.items] == [80.0, 100.0, 110.0]
+    assert [item.total_pnl for item in response.items] == pytest.approx([20.0, 30.0, 40.0])
     assert [item.realized_pnl for item in response.items] == [12.0, 12.0, 20.0]
+    assert response.items[0].daily_mtm is None
+    assert response.items[1].daily_mtm == pytest.approx(10.000001)
+    assert response.items[2].daily_mtm == pytest.approx(-2.0)
+    assert response.items[0].daily_twr is None
+    assert response.items[1].daily_twr == pytest.approx(10.000001)
+    assert response.items[2].daily_twr == pytest.approx(-1.2)
+
+
+def test_get_equity_curve_drops_near_zero_inferred_daily_pnl() -> None:
+    es_client = StubESClient(
+        responses=[
+            {"hits": {"hits": [{"_source": {"report_date": "2026-04-03"}}]}},
+            {
+                "hits": {
+                    "hits": [
+                        {"_source": {"account_id": "U1", "report_date": "2026-04-02", "total_equity": 59062.647184219}},
+                        {"_source": {"account_id": "U1", "report_date": "2026-04-03", "total_equity": 59062.647186383}},
+                    ]
+                }
+            },
+            {"hits": {"hits": []}},
+            {"hits": {"hits": []}},
+        ]
+    )
+
+    service = ChartService(es_client, DummySettings())
+    response = service.get_equity_curve("2026-04-02", "2026-04-03")
+
+    assert [item.daily_mtm for item in response.items] == [None, None]
+    assert [item.daily_twr for item in response.items] == [None, None]
 
 
 def test_get_equity_curve_aligns_net_cost_to_settle_date() -> None:

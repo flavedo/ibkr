@@ -5,6 +5,7 @@ import { fetchEquityCurve } from '@/api/charts'
 import EquityCurveSimple from '@/components/EquityCurveSimple.vue'
 import ErrorBlock from '@/components/ErrorBlock.vue'
 import LoadingBlock from '@/components/LoadingBlock.vue'
+import PerformanceCalendar from '@/components/PerformanceCalendar.vue'
 import StatCard from '@/components/StatCard.vue'
 import type { AccountDeltaMetric, AccountOverview } from '@/types/account'
 import type { EquityCurvePoint } from '@/types/charts'
@@ -56,6 +57,13 @@ function deltaTone(metric: AccountDeltaMetric | null): 'neutral' | 'positive' | 
   return metric.amount_change > 0 ? 'positive' : 'negative'
 }
 
+function metricTone(value: number | null, fallback: 'neutral' | 'accent' = 'neutral'): 'neutral' | 'positive' | 'negative' | 'accent' {
+  if (value === null || value === 0) {
+    return fallback
+  }
+  return value > 0 ? 'positive' : 'negative'
+}
+
 const statCards = computed(() => {
   if (!overview.value) {
     return []
@@ -101,7 +109,20 @@ const statCards = computed(() => {
       deltaPercent: formatSignedPercent(overview.value.fifo_total_pnl_delta?.percent_change ?? null),
       deltaTone: deltaTone(overview.value.fifo_total_pnl_delta),
     },
-    { title: 'TWR', value: formatPercent(overview.value.cnav_twr), icon: 'pi pi-percentage', tone: 'accent' as const },
+    {
+      title: '当日TWR',
+      value: formatPercent(overview.value.cnav_twr),
+      helper: 'IBKR CNAV 单日收益率',
+      icon: 'pi pi-percentage',
+      tone: metricTone(overview.value.cnav_twr, 'accent'),
+    },
+    {
+      title: '年初至今TWR',
+      value: formatPercent(overview.value.ytd_twr),
+      helper: `${overview.value.report_date.slice(0, 4)}-01-01 至今`,
+      icon: 'pi pi-calendar',
+      tone: metricTone(overview.value.ytd_twr, 'accent'),
+    },
     { title: '年内分红', value: formatNumber(overview.value.crtt_dividends_ytd), icon: 'pi pi-briefcase', tone: 'neutral' as const },
     { title: '年内利息', value: formatNumber(overview.value.crtt_broker_interest_ytd), icon: 'pi pi-chart-line', tone: 'neutral' as const },
     { title: '年内佣金', value: formatNumber(overview.value.crtt_commissions_ytd), icon: 'pi pi-minus-circle', tone: 'negative' as const },
@@ -174,6 +195,7 @@ onUnmounted(() => {
       </section>
 
       <EquityCurveSimple :items="curveItems" :format-number="formatNumber" />
+      <PerformanceCalendar :items="curveItems" />
     </template>
   </section>
 </template>

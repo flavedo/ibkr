@@ -10,8 +10,8 @@ def create_scheduler() -> BlockingScheduler:
     scheduler.add_job(
         run_daily_incremental_job,
         trigger="cron",
-        hour=9,
-        minute=0,
+        hour=12,
+        minute=30,
         id="daily_incremental_job",
         replace_existing=True,
     )

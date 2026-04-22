@@ -23,6 +23,7 @@ class AccountOverviewResponse(BaseModel):
     fifo_total_unrealized_pnl: float | None = None
     fifo_total_pnl: float | None = None
     cnav_twr: float | None = None
+    ytd_twr: float | None = None
     crtt_dividends_ytd: float | None = None
     crtt_broker_interest_ytd: float | None = None
     crtt_commissions_ytd: float | None = None

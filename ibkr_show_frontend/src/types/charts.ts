@@ -4,6 +4,8 @@ export interface EquityCurvePoint {
   total_pnl: number | null
   net_cost: number | null
   realized_pnl: number | null
+  daily_mtm: number | null
+  daily_twr: number | null
 }
 
 export interface EquityCurveResponse {

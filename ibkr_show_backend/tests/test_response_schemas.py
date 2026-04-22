@@ -12,10 +12,11 @@ from app.schemas.trades import TradeItem, TradeListResponse, TradeSummaryRespons
 
 
 def test_account_overview_schema_instantiates() -> None:
-    overview = AccountOverviewResponse(account_id="U1", report_date="2026-04-17")
+    overview = AccountOverviewResponse(account_id="U1", report_date="2026-04-17", ytd_twr=4.2)
     latest = LatestReportDateResponse(report_date="2026-04-17")
 
     assert overview.account_id == "U1"
+    assert overview.ytd_twr == 4.2
     assert latest.report_date == "2026-04-17"
 
 
@@ -73,10 +74,20 @@ def test_position_summary_schema_instantiates() -> None:
 
 def test_chart_response_schema_instantiates() -> None:
     response = EquityCurveResponse(
-        items=[EquityCurvePoint(report_date="2026-04-17", total_equity=100.0, total_pnl=5.0, net_cost=95.0)]
+        items=[
+            EquityCurvePoint(
+                report_date="2026-04-17",
+                total_equity=100.0,
+                total_pnl=5.0,
+                net_cost=95.0,
+                daily_mtm=3.0,
+                daily_twr=0.5,
+            )
+        ]
     )
     assert response.items[0].total_equity == 100.0
     assert response.items[0].total_pnl == 5.0
+    assert response.items[0].daily_mtm == 3.0
 
 
 def test_cash_flow_response_schema_instantiates() -> None:
