@@ -1,5 +1,7 @@
-docker buildx create --name multiarch --use --force 2>/dev/null || docker buildx use multiarch
+docker buildx create --name multiarch --use
 
+# 2. 登录 DockerHub
 docker login
 
-docker buildx build --platform linux/amd64 -t chyengjason/ibkrweb:latest --push .
+# 3. 构建并推送多架构镜像
+docker buildx build --platform linux/amd64,linux/arm64 -t chyengjason/ibkrweb:latest --push .
