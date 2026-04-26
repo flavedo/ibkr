@@ -30,3 +30,4 @@ htmlcov/
 
 # Local public mirror workspace
 public_repo_staging/
+docker-compose.yml
