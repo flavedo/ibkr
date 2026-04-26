@@ -37,9 +37,9 @@ COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/pytho
 COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --from=builder /app/worker /app/worker
 COPY --from=builder /app/backend /app/backend
-COPY --from=frontend /app/dist /app/frontend/dist
+COPY --from=frontend /app/dist /app/dist
 
-RUN echo 'server { listen 80; location / { root /app/frontend/dist; index index.html; try_files $uri $uri/ /index.html; } location /api/ { proxy_pass http://localhost:8000; } }' > /etc/nginx/conf.d/default.conf
+RUN echo 'server { listen 80; location / { root /app/dist; index index.html; try_files $uri $uri/ /index.html; } location /api/ { proxy_pass http://localhost:8000; } }' > /etc/nginx/conf.d/default.conf
 
 ENV PYTHONPATH=/app
 
