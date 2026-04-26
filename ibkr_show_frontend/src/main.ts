@@ -12,7 +12,7 @@ import './style.css'
 createApp(App)
   .use(router)
   .use(PrimeVue, {
-    ripple: true,
+    ripple: false,
     unstyled: true,
   })
   .mount('#app')

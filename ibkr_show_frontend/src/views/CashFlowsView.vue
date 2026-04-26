@@ -273,8 +273,9 @@ onMounted(() => {
             <Button
               label="选择文件"
               icon="pi pi-folder-open"
-              class="p-button p-button--accent"
+              class="p-button p-button--accent import-dialog__button"
               :loading="isImporting"
+              :ripple="false"
               @click="triggerFileInput"
             />
             <p v-if="importMessage" :class="['import-dialog__message', importSuccess ? 'is-success' : 'is-error']">
@@ -450,6 +451,11 @@ onMounted(() => {
 
 .import-dialog__message.is-error {
   color: var(--color-loss);
+}
+
+.import-dialog__button {
+  overflow: hidden;
+  position: relative;
 }
 
 @media (max-width: 1200px) {

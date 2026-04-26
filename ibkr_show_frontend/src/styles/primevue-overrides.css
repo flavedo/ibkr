@@ -36,6 +36,12 @@
   letter-spacing: 0.01em;
 }
 
+.p-ink,
+[data-p-ink] {
+  height: 42px !important;
+  width: 42px !important;
+}
+
 .p-button--accent,
 .terminal-nav__button.is-active {
   border-color: rgba(86, 213, 255, 0.3);
