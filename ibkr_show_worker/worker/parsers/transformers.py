@@ -845,6 +845,10 @@ def _transform_trade_records(statement: FlexStatement, source_query_type: str) -
         if level_of_detail in {"SUMMARY", "SYMBOL_SUMMARY"}:
             continue
 
+        trade_id = _get_value(row, "TradeID", "TradeId")
+        if not trade_id:
+            continue
+
         trade_merge_key = _build_trade_merge_key(row)
         unbc_row = unbc_lookup.get(trade_merge_key, {})
 
@@ -858,7 +862,6 @@ def _transform_trade_records(statement: FlexStatement, source_query_type: str) -
         trade_date = to_iso_date(_get_value(row, "TradeDate", "Date"))
         date_time = to_iso_datetime(_get_value(row, "Date/Time", "DateTime"))
         transaction_id = _get_value(row, "TransactionID", "TransactionId")
-        trade_id = _get_value(row, "TradeID", "TradeId")
         quantity = _get_number(row, "Quantity")
         buy_sell = _get_value(row, "Buy/Sell", "BuySell")
 
