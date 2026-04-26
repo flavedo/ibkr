@@ -91,6 +91,8 @@ def build_trade_record_id(
     quantity: object,
     transaction_id: str | None,
 ) -> str:
+    if trade_id:
+        return _safe_id_component(trade_id)
     if transaction_id:
         return _safe_id_component(transaction_id)
 
