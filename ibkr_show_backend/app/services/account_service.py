@@ -140,16 +140,17 @@ class AccountService:
                             {"term": {"account_id": account_id}},
                             {"term": {"flow_type": "Dividend"}},
                             {"range": {"date_time": {"gte": f"{report_year}-01-01", "lte": report_date}}},
+                            {"bool": {"must_not": [{"term": {"code": "Re"}}]}},
                         ]
                     }
                 },
                 "aggs": {
-                    "total": {"sum": {"field": "amount"}}
+                    "total": {"sum": {"field": "gross_amount"}}
                 }
             },
         )
         total = response.get("aggregations", {}).get("total", {}).get("value")
-        return total if total is not None else None
+        return abs(total) if total is not None else None
 
     def _get_total_realized_pnl(self, account_id: str, report_date: str) -> float:
         response = self.es_client.search(
