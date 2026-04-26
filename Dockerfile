@@ -12,8 +12,8 @@ RUN pip install --no-cache-dir -r /app/worker/requirements.txt
 COPY ibkr_show_backend/requirements.txt /app/backend/requirements.txt
 RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 
-COPY ibkr_show_worker /app/worker
-COPY ibkr_show_backend /app/backend
+COPY ibkr_show_worker/worker /app/worker
+COPY ibkr_show_backend/app /app/backend/app
 
 ENV PYTHONPATH=/app
 
