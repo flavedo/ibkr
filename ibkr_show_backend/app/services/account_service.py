@@ -68,6 +68,7 @@ class AccountService:
         overview_source["ytd_twr"] = self._get_ytd_twr(account_id, report_date)
 
         overview_source["crtt_dividends_ytd"] = self._get_ytd_dividends(account_id, report_date)
+        overview_source["crtt_commissions_ytd"] = self._get_ytd_commissions(account_id, report_date)
 
         previous_source = dict(hits[1]["_source"]) if len(hits) > 1 else None
         if previous_source is not None:
@@ -146,6 +147,29 @@ class AccountService:
                 },
                 "aggs": {
                     "total": {"sum": {"field": "gross_amount"}}
+                }
+            },
+        )
+        total = response.get("aggregations", {}).get("total", {}).get("value")
+        return abs(total) if total is not None else None
+
+    def _get_ytd_commissions(self, account_id: str, report_date: str) -> float | None:
+        report_year = report_date[:4]
+        response = self.es_client.search(
+            index=self.settings.es_trade_index,
+            body={
+                "size": 0,
+                "query": {
+                    "bool": {
+                        "filter": [
+                            {"term": {"account_id": account_id}},
+                            {"exists": {"field": "ib_commission"}},
+                            {"range": {"report_date": {"gte": f"{report_year}-01-01", "lte": report_date}}},
+                        ]
+                    }
+                },
+                "aggs": {
+                    "total": {"sum": {"field": "ib_commission"}}
                 }
             },
         )
