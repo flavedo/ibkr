@@ -42,4 +42,4 @@ ENV PATH="/app/worker:/app/backend:${PATH}"
 
 EXPOSE 8000 5173
 
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
