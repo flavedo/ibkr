@@ -14,7 +14,7 @@ router = APIRouter(prefix="/data", tags=["data"])
 async def trigger_data_refresh() -> dict:
     try:
         import sys
-        sys.path.insert(0, "/app/worker")
+        sys.path.insert(0, "/app")
         from worker.jobs.daily_incremental_job import run_daily_incremental_job
         result = run_daily_incremental_job()
         return {"success": True, "result": result}
@@ -48,7 +48,7 @@ async def import_csv(file: UploadFile = File(...)) -> dict:
 
         try:
             import sys
-            sys.path.insert(0, "/app/worker")
+            sys.path.insert(0, "/app")
             from worker.jobs.import_daily_snapshot import import_daily_snapshot_file
 
             result = import_daily_snapshot_file(temp_path)
