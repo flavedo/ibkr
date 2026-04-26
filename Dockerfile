@@ -39,7 +39,7 @@ COPY --from=builder /app/worker /app/worker
 COPY --from=builder /app/backend /app/backend
 COPY --from=frontend /app/dist /app/dist
 
-RUN echo 'server { listen 80; root /app/dist; index index.html; location / { try_files $uri $uri/ /index.html; } location /api/ { proxy_pass http://localhost:8000; } }' > /etc/nginx/conf.d/default.conf
+RUN echo 'server { listen 80; root /app/dist; index index.html; location / { try_files $uri $uri/ /index.html; } location /api/ { proxy_pass http://localhost:8000; } }' > /etc/nginx/conf.d/default.conf && rm -f /etc/nginx/sites-enabled/default
 
 ENV PYTHONPATH=/app
 
