@@ -140,18 +140,18 @@ class AccountService:
                         "filter": [
                             {"term": {"account_id": account_id}},
                             {"term": {"flow_type": "Dividend"}},
+                            {"term": {"activity_code": "DIV"}},
                             {"range": {"date_time": {"gte": f"{report_year}-01-01", "lte": report_date}}},
-                            {"bool": {"must_not": [{"term": {"code": "Re"}}]}},
                         ]
                     }
                 },
                 "aggs": {
-                    "total": {"sum": {"field": "gross_amount"}}
+                    "total": {"sum": {"field": "amount"}}
                 }
             },
         )
         total = response.get("aggregations", {}).get("total", {}).get("value")
-        return abs(total) if total is not None else None
+        return total if total is not None else None
 
     def _get_ytd_commissions(self, account_id: str, report_date: str) -> float | None:
         report_year = report_date[:4]

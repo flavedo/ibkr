@@ -8,6 +8,7 @@ from app.core.config import get_settings
 from app.services.account_service import AccountService
 from app.services.cash_flow_service import CashFlowService
 from app.services.chart_service import ChartService
+from app.services.dividend_service import DividendService
 from app.services.position_service import PositionService
 from app.services.trade_service import TradeService
 
@@ -35,6 +36,10 @@ def get_trade_service() -> TradeService:
 
 def get_cash_flow_service() -> CashFlowService:
     return CashFlowService(get_es_client(), get_settings())
+
+
+def get_dividend_service() -> DividendService:
+    return DividendService(get_es_client(), get_settings())
 
 
 def get_optional_auth_session(

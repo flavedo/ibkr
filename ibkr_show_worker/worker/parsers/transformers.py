@@ -552,6 +552,78 @@ def _transform_daily_cash_flows(statement: FlexStatement, source_query_type: str
     if cdiv_section is not None:
         documents.extend(_transform_dividend_rows(cdiv_section, statement, source_query_type))
 
+    stfu_section = statement.get_section("STFU")
+    if stfu_section is not None:
+        documents.extend(_transform_stfu_dividend_rows(stfu_section, statement, source_query_type))
+
+    return documents
+
+
+def _transform_stfu_dividend_rows(
+    section: FlexSection,
+    statement: FlexStatement,
+    source_query_type: str,
+) -> list[dict]:
+    documents: list[dict] = []
+
+    for row in section.rows:
+        activity_code = _get_value(row, "ActivityCode")
+        if activity_code != "DIV":
+            continue
+
+        account_id = _get_value(row, "ClientAccountID", "AccountId") or "unknown"
+        date_time = to_iso_datetime(_get_value(row, "Date"))
+        settle_date = to_iso_date(_get_value(row, "SettleDate"))
+        symbol = _get_value(row, "Symbol")
+        description = _get_value(row, "Description")
+        amount = _get_number(row, "Amount")
+        fx_rate_to_base = _get_number(row, "FXRateToBase")
+        transaction_id = _get_value(row, "TransactionID")
+        activity_description = _get_value(row, "ActivityDescription")
+
+        amount_in_base = amount * fx_rate_to_base if amount is not None and fx_rate_to_base is not None else amount
+
+        document = {
+            "_id": build_cash_flow_record_id(
+                account_id=account_id,
+                date_time=date_time,
+                amount=amount,
+                transaction_id=transaction_id,
+            ),
+            "account_id": account_id,
+            "currency": _get_value(row, "CurrencyPrimary"),
+            "asset_class": _get_value(row, "AssetClass"),
+            "sub_category": _get_value(row, "SubCategory"),
+            "symbol": symbol,
+            "description": description,
+            "date_time": date_time,
+            "settle_date": settle_date,
+            "available_for_trading_date": None,
+            "amount": amount,
+            "gross_amount": amount,
+            "tax": None,
+            "fx_rate_to_base": fx_rate_to_base,
+            "amount_in_base": amount_in_base,
+            "flow_direction": "deposit",
+            "flow_type": "Dividend",
+            "dividend_type": _get_value(row, "SubCategory"),
+            "quantity": None,
+            "transaction_id": transaction_id,
+            "trade_id": _get_value(row, "TradeID"),
+            "code": None,
+            "report_date": _get_report_date(statement),
+            "ex_date": None,
+            "client_reference": None,
+            "action_id": _get_value(row, "ActionID"),
+            "level_of_detail": _get_value(row, "LevelOfDetail"),
+            "source_file_name": statement.source_file.name if statement.source_file else None,
+            "source_query_type": source_query_type,
+            "ingested_at": utc_now_iso(),
+            "activity_code": activity_code,
+            "activity_description": activity_description,
+        }
+        documents.append(_clean_document(document))
+
     return documents
 
 

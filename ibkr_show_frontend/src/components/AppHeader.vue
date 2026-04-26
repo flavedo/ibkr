@@ -44,6 +44,7 @@ const baseNavItems = [
 
 const protectedNavItems = [
   { label: '交易', icon: 'pi pi-list', to: '/trades' },
+  { label: '分红', icon: 'pi pi-dollar', to: '/dividends' },
   { label: '出入金', icon: 'pi pi-wallet', to: '/cash-flows' },
 ]
 
@@ -56,7 +57,7 @@ function isActive(path: string): boolean {
 }
 
 function isProtectedPath(path: string): boolean {
-  return path === '/trades' || path === '/cash-flows'
+  return path === '/trades' || path === '/dividends' || path === '/cash-flows'
 }
 
 function navigate(path: string): void {
