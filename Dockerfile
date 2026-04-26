@@ -39,10 +39,10 @@ COPY --from=builder /app/worker /app/worker
 COPY --from=builder /app/backend /app/backend
 COPY --from=frontend /app/dist /app/dist
 
-RUN echo 'server { listen 80; location / { root /app/dist; index index.html; try_files $uri $uri/ /index.html; } location /api/ { proxy_pass http://localhost:8000; } }' > /etc/nginx/conf.d/default.conf
+RUN echo 'server { listen 80; root /app/dist; index index.html; location / { try_files $uri $uri/ /index.html; } location /api/ { proxy_pass http://localhost:8000; } }' > /etc/nginx/conf.d/default.conf
 
 ENV PYTHONPATH=/app
 
 EXPOSE 80 8000
 
-CMD service nginx start && cd /app/backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+CMD nginx & cd /app/backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
