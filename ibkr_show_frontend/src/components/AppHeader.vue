@@ -394,6 +394,7 @@ onUnmounted(() => {
   margin: 0;
   color: var(--color-loss);
   font-size: 0.875rem;
+  max-width: 300px;
 }
 
 .auth-dialog__actions {
