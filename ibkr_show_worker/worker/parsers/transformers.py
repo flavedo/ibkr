@@ -537,16 +537,90 @@ def _transform_cash_flow_rows(
 
 
 def _transform_daily_cash_flows(statement: FlexStatement, source_query_type: str) -> list[dict]:
-    section = statement.get_section("CTRN")
-    if section is None:
-        return []
+    documents: list[dict] = []
 
-    relevant_rows = [
-        row
-        for row in section.rows
-        if (_get_value(row, "Type") or "").strip() == "Deposits/Withdrawals"
-    ]
-    return _transform_cash_flow_rows(relevant_rows, statement.source_file, source_query_type)
+    ctrn_section = statement.get_section("CTRN")
+    if ctrn_section is not None:
+        relevant_rows = [
+            row
+            for row in ctrn_section.rows
+            if (_get_value(row, "Type") or "").strip() == "Deposits/Withdrawals"
+        ]
+        documents.extend(_transform_cash_flow_rows(relevant_rows, statement.source_file, source_query_type))
+
+    cdiv_section = statement.get_section("CDIV")
+    if cdiv_section is not None:
+        documents.extend(_transform_dividend_rows(cdiv_section, statement.source_file, source_query_type))
+
+    return documents
+
+
+def _transform_dividend_rows(
+    section: FlexSection,
+    source_file: Path,
+    source_query_type: str,
+) -> list[dict]:
+    documents: list[dict] = []
+
+    for row in section.rows:
+        account_id = _get_value(row, "ClientAccountID", "AccountId") or "unknown"
+        date_time = to_iso_datetime(_get_value(row, "Date"))
+        pay_date = to_iso_date(_get_value(row, "PayDate"))
+        settle_date = to_iso_date(_get_value(row, "SettleDate"))
+        symbol = _get_value(row, "Symbol")
+        description = _get_value(row, "Description")
+        quantity = _get_number(row, "Quantity")
+        gross_amount = _get_number(row, "GrossAmount")
+        net_amount = _get_number(row, "NetAmount")
+        fx_rate_to_base = _get_number(row, "FXRateToBase")
+        tax = _get_number(row, "Tax")
+
+        amount_in_base = net_amount * fx_rate_to_base if net_amount is not None and fx_rate_to_base is not None else net_amount
+
+        level_of_detail = _get_value(row, "LevelOfDetail")
+        if level_of_detail in {"SUMMARY"}:
+            continue
+
+        document = {
+            "_id": build_cash_flow_record_id(
+                account_id=account_id,
+                date_time=date_time,
+                amount=net_amount,
+                transaction_id=_get_value(row, "ActionID"),
+            ),
+            "account_id": account_id,
+            "currency": _get_value(row, "CurrencyPrimary"),
+            "asset_class": _get_value(row, "AssetClass"),
+            "sub_category": _get_value(row, "SubCategory"),
+            "symbol": symbol,
+            "description": description,
+            "date_time": date_time,
+            "settle_date": settle_date,
+            "available_for_trading_date": None,
+            "amount": net_amount,
+            "gross_amount": gross_amount,
+            "tax": tax,
+            "fx_rate_to_base": fx_rate_to_base,
+            "amount_in_base": amount_in_base,
+            "flow_direction": "deposit",
+            "flow_type": "Dividend",
+            "dividend_type": _get_value(row, "SubCategory"),
+            "quantity": quantity,
+            "transaction_id": _get_value(row, "ActionID"),
+            "trade_id": None,
+            "code": _get_value(row, "Code"),
+            "report_date": _get_report_date(statement),
+            "ex_date": to_iso_date(_get_value(row, "ExDate")),
+            "client_reference": None,
+            "action_id": _get_value(row, "ActionID"),
+            "level_of_detail": level_of_detail,
+            "source_file_name": source_file.name if source_file else None,
+            "source_query_type": source_query_type,
+            "ingested_at": utc_now_iso(),
+        }
+        documents.append(document)
+
+    return documents
 
 
 def transform_account_history_statement(statement: FlexStatement, source_query_type: str) -> list[dict]:
