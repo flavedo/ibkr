@@ -7,6 +7,7 @@ import Tag from 'primevue/tag'
 
 import { useAuthSession } from '@/auth/session'
 import { fetchAccountOverview } from '@/api/account'
+import { triggerDataRefresh } from '@/api/data'
 import type { AccountOverview } from '@/types/account'
 
 const route = useRoute()
@@ -19,7 +20,22 @@ const loginForm = reactive({
   username: '',
   password: '',
 })
+const isRefreshing = ref(false)
+const refreshError = ref('')
 let refreshTimer: number | null = null
+
+async function handleRefresh(): Promise<void> {
+  isRefreshing.value = true
+  refreshError.value = ''
+  try {
+    await triggerDataRefresh()
+    await loadOverview()
+  } catch (error) {
+    refreshError.value = error instanceof Error ? error.message : '刷新失败'
+  } finally {
+    isRefreshing.value = false
+  }
+}
 
 const baseNavItems = [
   { label: '总览', icon: 'pi pi-chart-line', to: '/' },
@@ -124,6 +140,13 @@ onUnmounted(() => {
           <div class="app-header__status-row">
             <Tag class="p-tag p-tag--accent" value="LIVE API"></Tag>
             <Button
+              label="刷新数据"
+              icon="pi pi-refresh"
+              class="p-button p-button--ghost app-header__auth-button"
+              :loading="isRefreshing"
+              @click="handleRefresh"
+            />
+            <Button
               v-if="!authState.authenticated"
               label="登录"
               icon="pi pi-sign-in"
@@ -140,6 +163,7 @@ onUnmounted(() => {
               />
             </div>
           </div>
+          <p v-if="refreshError" class="refresh-error">{{ refreshError }}</p>
           <div class="app-header__metrics">
             <div class="app-header__metric">
               <span class="terminal-note">报告日期</span>
@@ -328,6 +352,8 @@ onUnmounted(() => {
 .auth-dialog__content {
   display: grid;
   gap: 20px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .auth-dialog__header {
@@ -339,7 +365,7 @@ onUnmounted(() => {
 
 .auth-dialog__title {
   margin: 0;
-  font-size: 1.65rem;
+  font-size: 1.1rem;
 }
 
 .auth-dialog__close {
@@ -350,6 +376,13 @@ onUnmounted(() => {
 .auth-dialog__form {
   display: grid;
   gap: 16px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.auth-dialog__form :deep(.p-inputtext) {
+  width: 100%;
+  font-size: 1rem;
 }
 
 .auth-dialog__error {
@@ -357,10 +390,23 @@ onUnmounted(() => {
   color: var(--color-loss);
 }
 
+.refresh-error {
+  margin: 0;
+  color: var(--color-loss);
+  font-size: 0.875rem;
+}
+
 .auth-dialog__actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+.auth-dialog__actions :deep(.p-button) {
+  min-width: auto;
+  min-height: 38px;
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
 }
 
 @media (max-width: 768px) {
