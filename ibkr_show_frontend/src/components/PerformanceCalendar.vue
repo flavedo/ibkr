@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
+import DatePicker from 'primevue/datepicker'
 
 import type { EquityCurvePoint } from '@/types/charts'
 
@@ -23,28 +24,64 @@ const weekdayLabels = ['一', '二', '三', '四', '五', '六', '日']
 
 const latestPoint = computed(() => props.items[props.items.length - 1] ?? null)
 
-const monthLabel = computed(() => {
-  const latestDate = latestPoint.value?.report_date
-  if (!latestDate) {
-    return '--'
+const currentYear = ref<number>(new Date().getFullYear())
+const currentMonth = ref<number>(new Date().getMonth() + 1)
+
+watch(latestPoint, (point) => {
+  if (point?.report_date) {
+    const { year, month } = parseIsoDate(point.report_date)
+    currentYear.value = year
+    currentMonth.value = month
   }
-  const { year, month } = parseIsoDate(latestDate)
-  return `${year}年${month}月`
+}, { immediate: true })
+
+function goToPrevMonth() {
+  if (currentMonth.value === 1) {
+    currentMonth.value = 12
+    currentYear.value -= 1
+  } else {
+    currentMonth.value -= 1
+  }
+}
+
+function goToNextMonth() {
+  if (currentMonth.value === 12) {
+    currentMonth.value = 1
+    currentYear.value += 1
+  } else {
+    currentMonth.value += 1
+  }
+}
+
+function goToLatestMonth() {
+  if (latestPoint.value?.report_date) {
+    const { year, month } = parseIsoDate(latestPoint.value.report_date)
+    currentYear.value = year
+    currentMonth.value = month
+  }
+}
+
+function onMonthSelect(event: { year: number; month: number }) {
+  currentYear.value = event.year
+  currentMonth.value = event.month
+}
+
+const monthLabel = computed(() => {
+  return `${currentYear.value}年${currentMonth.value}月`
+})
+
+const selectedMonth = computed({
+  get: () => new Date(currentYear.value, currentMonth.value - 1, 15),
+  set: (val: Date) => {
+    if (val) {
+      currentYear.value = val.getFullYear()
+      currentMonth.value = val.getMonth() + 1
+    }
+  }
 })
 
 const calendarMetrics = computed(() => {
-  const latestDate = latestPoint.value?.report_date
-  if (!latestDate) {
-    return {
-      tradingDays: 0,
-      positiveDays: 0,
-      negativeDays: 0,
-      totalPnl: null as number | null,
-    }
-  }
-
-  const { year, month } = parseIsoDate(latestDate)
-  const monthPrefix = `${year}-${String(month).padStart(2, '0')}-`
+  const monthPrefix = `${currentYear.value}-${String(currentMonth.value).padStart(2, '0')}-`
   const monthItems = props.items.filter((item) => item.report_date.startsWith(monthPrefix))
 
   let totalPnl = 0
@@ -74,19 +111,18 @@ const calendarMetrics = computed(() => {
 })
 
 const calendarCells = computed<CalendarCell[]>(() => {
-  const latestDate = latestPoint.value?.report_date
-  if (!latestDate) {
+  if (!props.items.length) {
     return []
   }
 
-  const latestDateParts = parseIsoDate(latestDate)
-  const firstDay = new Date(Date.UTC(latestDateParts.year, latestDateParts.month - 1, 1))
-  const nextMonthFirstDay = new Date(Date.UTC(latestDateParts.year, latestDateParts.month, 1))
+  const firstDay = new Date(Date.UTC(currentYear.value, currentMonth.value - 1, 1))
+  const nextMonthFirstDay = new Date(Date.UTC(currentYear.value, currentMonth.value, 1))
   const monthEnd = new Date(nextMonthFirstDay.getTime() - 24 * 60 * 60 * 1000)
   const daysInMonth = monthEnd.getUTCDate()
   const leadingPadding = (firstDay.getUTCDay() + 6) % 7
 
   const pointsByDate = new Map(props.items.map((item) => [item.report_date, item]))
+  const latestDate = latestPoint.value?.report_date ?? ''
   const cells: CalendarCell[] = []
 
   for (let index = 0; index < leadingPadding; index += 1) {
@@ -203,6 +239,25 @@ function formatSummaryAmount(value: number | null): string {
             <Tag class="p-tag" :value="`${calendarMetrics.tradingDays} 个交易日`" />
             <Tag class="p-tag" :value="`月内 ${formatSummaryAmount(calendarMetrics.totalPnl)}`" />
           </div>
+          <div class="calendar-panel__nav">
+            <button class="p-button p-button-sm p-button-text" type="button" aria-label="上个月" @click="goToPrevMonth">
+              <span class="pi pi-chevron-left" />
+            </button>
+            <DatePicker
+              v-model="selectedMonth"
+              view="month"
+              date-format="yy/mm"
+              :manual-input="false"
+              :max-date="latestPoint ? new Date(latestPoint.report_date) : undefined"
+              @update:model-value="(val: Date) => { if (val) { currentYear = val.getFullYear(); currentMonth = val.getMonth() + 1 } }"
+            />
+            <button class="p-button p-button-sm p-button-text" type="button" aria-label="下个月" @click="goToNextMonth">
+              <span class="pi pi-chevron-right" />
+            </button>
+            <button class="p-button p-button-sm p-button-secondary" type="button" @click="goToLatestMonth">
+              最新月
+            </button>
+          </div>
         </div>
 
         <div v-if="calendarCells.length === 0" class="empty-state">暂无日历数据</div>
@@ -261,6 +316,13 @@ function formatSummaryAmount(value: number | null): string {
   align-items: flex-start;
   gap: var(--space-4);
   margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.calendar-panel__nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 .calendar-panel__title {
