@@ -550,14 +550,14 @@ def _transform_daily_cash_flows(statement: FlexStatement, source_query_type: str
 
     cdiv_section = statement.get_section("CDIV")
     if cdiv_section is not None:
-        documents.extend(_transform_dividend_rows(cdiv_section, statement.source_file, source_query_type))
+        documents.extend(_transform_dividend_rows(cdiv_section, statement, source_query_type))
 
     return documents
 
 
 def _transform_dividend_rows(
     section: FlexSection,
-    source_file: Path,
+    statement: FlexStatement,
     source_query_type: str,
 ) -> list[dict]:
     documents: list[dict] = []
@@ -614,7 +614,7 @@ def _transform_dividend_rows(
             "client_reference": None,
             "action_id": _get_value(row, "ActionID"),
             "level_of_detail": level_of_detail,
-            "source_file_name": source_file.name if source_file else None,
+            "source_file_name": statement.source_file.name if statement.source_file else None,
             "source_query_type": source_query_type,
             "ingested_at": utc_now_iso(),
         }
