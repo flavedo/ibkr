@@ -67,6 +67,8 @@ class AccountService:
         overview_source["fifo_total_pnl"] = total_realized_pnl + total_unrealized_pnl
         overview_source["ytd_twr"] = self._get_ytd_twr(account_id, report_date)
 
+        overview_source["crtt_dividends_ytd"] = self._get_ytd_dividends(account_id, report_date)
+
         previous_source = dict(hits[1]["_source"]) if len(hits) > 1 else None
         if previous_source is not None:
             previous_report_date = previous_source["report_date"]
@@ -125,6 +127,29 @@ class AccountService:
             cumulative_return *= 1.0 + daily_twr / 100.0
 
         return (cumulative_return - 1.0) * 100.0
+
+    def _get_ytd_dividends(self, account_id: str, report_date: str) -> float | None:
+        report_year = report_date[:4]
+        response = self.es_client.search(
+            index=self.settings.es_cash_flow_index,
+            body={
+                "size": 0,
+                "query": {
+                    "bool": {
+                        "filter": [
+                            {"term": {"account_id": account_id}},
+                            {"term": {"flow_type": "Dividend"}},
+                            {"range": {"date_time": {"gte": f"{report_year}-01-01", "lte": report_date}}},
+                        ]
+                    }
+                },
+                "aggs": {
+                    "total": {"sum": {"field": "amount"}}
+                }
+            },
+        )
+        total = response.get("aggregations", {}).get("total", {}).get("value")
+        return total if total is not None else None
 
     def _get_total_realized_pnl(self, account_id: str, report_date: str) -> float:
         response = self.es_client.search(
