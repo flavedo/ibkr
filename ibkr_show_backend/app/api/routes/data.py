@@ -1,6 +1,9 @@
 import logging
+import os
+import tempfile
+from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
 logger = logging.getLogger(__name__)
 
@@ -20,4 +23,41 @@ async def trigger_data_refresh() -> dict:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to refresh data: {str(e)}",
+        )
+
+
+@router.post("/import-csv")
+async def import_csv(file: UploadFile = File(...)) -> dict:
+    if not file.filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No filename provided",
+        )
+
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File must be a CSV",
+        )
+
+    try:
+        with tempfile.NamedTemporaryFile(prefix="ibkr_import_", suffix=".csv", delete=False) as temp_file:
+            content = await file.read()
+            temp_file.write(content)
+            temp_path = Path(temp_file.name)
+
+        try:
+            import sys
+            sys.path.insert(0, "/app/worker")
+            from worker.jobs.import_daily_snapshot import import_daily_snapshot_file
+
+            result = import_daily_snapshot_file(temp_path)
+            return {"success": True, "result": result}
+        finally:
+            os.unlink(temp_path)
+    except Exception as e:
+        logger.exception("Failed to import CSV")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to import CSV: {str(e)}",
         )
