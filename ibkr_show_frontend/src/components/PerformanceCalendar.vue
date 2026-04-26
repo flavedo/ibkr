@@ -138,7 +138,7 @@ const calendarCells = computed<CalendarCell[]>(() => {
   }
 
   for (let day = 1; day <= daysInMonth; day += 1) {
-    const reportDate = `${latestDateParts.year}-${String(latestDateParts.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const reportDate = `${currentYear.value}-${String(currentMonth.value).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     const point = pointsByDate.get(reportDate)
     cells.push({
       key: reportDate,
@@ -249,7 +249,6 @@ function formatSummaryAmount(value: number | null): string {
               date-format="yy/mm"
               :manual-input="false"
               :max-date="latestPoint ? new Date(latestPoint.report_date) : undefined"
-              @update:model-value="(val: Date) => { if (val) { currentYear = val.getFullYear(); currentMonth = val.getMonth() + 1 } }"
             />
             <button class="p-button p-button-sm p-button-text" type="button" aria-label="下个月" @click="goToNextMonth">
               <span class="pi pi-chevron-right" />
