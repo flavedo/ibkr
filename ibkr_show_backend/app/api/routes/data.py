@@ -53,7 +53,7 @@ async def import_csv(file: UploadFile = File(...)) -> dict:
         try:
             import sys
             sys.path.insert(0, "/app")
-            from worker.core.config import get_settings
+            from app.core.config import get_settings
             from worker.clients.es_client import ElasticsearchWriter
             from worker.jobs.import_daily_snapshot import import_daily_snapshot_file
 
