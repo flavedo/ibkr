@@ -48,3 +48,11 @@ class ElasticsearchClient:
         except ESConnectionError as exc:
             raise ESUnavailableError("Elasticsearch is not reachable.") from exc
 
+    def delete_by_query(self, index: str, body: dict) -> dict:
+        try:
+            return self._client.delete_by_query(index=index, body=body, refresh=True)
+        except NotFoundError as exc:
+            raise ESIndexNotFoundError(f"Elasticsearch index not found: {index}") from exc
+        except ESConnectionError as exc:
+            raise ESUnavailableError("Elasticsearch is not reachable.") from exc
+
