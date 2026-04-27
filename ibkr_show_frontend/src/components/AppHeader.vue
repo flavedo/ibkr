@@ -7,7 +7,7 @@ import Tag from 'primevue/tag'
 
 import { useAuthSession } from '@/auth/session'
 import { fetchAccountOverview } from '@/api/account'
-import { triggerDataRefresh } from '@/api/data'
+import { clearData, importCSV, triggerDataRefresh } from '@/api/data'
 import type { AccountOverview } from '@/types/account'
 
 const route = useRoute()
@@ -22,7 +22,10 @@ const loginForm = reactive({
 })
 const isRefreshing = ref(false)
 const refreshError = ref('')
+const isClearing = ref(false)
+const clearMessage = ref('')
 let refreshTimer: number | null = null
+const fileInputRef = ref<HTMLInputElement | null>(null)
 
 async function handleRefresh(): Promise<void> {
   isRefreshing.value = true
@@ -34,6 +37,44 @@ async function handleRefresh(): Promise<void> {
     refreshError.value = error instanceof Error ? error.message : '刷新失败'
   } finally {
     isRefreshing.value = false
+  }
+}
+
+async function handleClear(): Promise<void> {
+  if (!confirm('确定要清除所有交易和分红数据吗？此操作不可恢复。')) {
+    return
+  }
+  isClearing.value = true
+  clearMessage.value = ''
+  try {
+    const result = await clearData()
+    clearMessage.value = `已清除 cash_flows: ${result.deleted?.cash_flows ?? 0}, trades: ${result.deleted?.trades ?? 0}`
+    await loadOverview()
+  } catch (error) {
+    clearMessage.value = error instanceof Error ? error.message : '清除失败'
+  } finally {
+    isClearing.value = false
+  }
+}
+
+function handleImportClick(): void {
+  fileInputRef.value?.click()
+}
+
+async function handleFileChange(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  isRefreshing.value = true
+  refreshError.value = ''
+  try {
+    await importCSV(file)
+    await loadOverview()
+  } catch (error) {
+    refreshError.value = error instanceof Error ? error.message : '导入失败'
+  } finally {
+    isRefreshing.value = false
+    input.value = ''
   }
 }
 
@@ -148,6 +189,26 @@ onUnmounted(() => {
               @click="handleRefresh"
             />
             <Button
+              label="导入CSV"
+              icon="pi pi-upload"
+              class="p-button p-button--ghost app-header__auth-button"
+              @click="handleImportClick"
+            />
+            <Button
+              label="清除数据"
+              icon="pi pi-trash"
+              class="p-button p-button--ghost app-header__auth-button"
+              :loading="isClearing"
+              @click="handleClear"
+            />
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept=".csv"
+              style="display: none"
+              @change="handleFileChange"
+            />
+            <Button
               v-if="!authState.authenticated"
               label="登录"
               icon="pi pi-sign-in"
@@ -165,6 +226,7 @@ onUnmounted(() => {
             </div>
           </div>
           <p v-if="refreshError" class="refresh-error">{{ refreshError }}</p>
+          <p v-if="clearMessage" class="refresh-error">{{ clearMessage }}</p>
           <div class="app-header__metrics">
             <div class="app-header__metric">
               <span class="terminal-note">报告日期</span>

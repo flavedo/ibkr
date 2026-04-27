@@ -21,3 +21,12 @@ export async function importCSV(file: File): Promise<{ success: boolean; result?
   }
   return response.json()
 }
+
+export async function clearData(): Promise<{ success: boolean; deleted?: Record<string, number | string> }> {
+  const response = await fetch('/api/data/clear', { method: 'POST' })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }))
+    throw new Error(error.detail || `HTTP ${response.status}`)
+  }
+  return response.json()
+}
