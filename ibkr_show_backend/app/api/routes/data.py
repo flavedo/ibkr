@@ -77,11 +77,16 @@ async def clear_data() -> dict:
         settings = get_settings()
         es_client = get_es_client()
 
-        results = {}
-        for index_name, label in [
-            (settings.es_cash_flow_index, "cash_flows"),
+        all_indexes = [
+            (settings.es_account_index, "accounts"),
+            (settings.es_position_index, "positions"),
             (settings.es_trade_index, "trades"),
-        ]:
+            (settings.es_cash_flow_index, "cash_flows"),
+            (settings.es_price_history_index, "price_history"),
+        ]
+
+        results = {}
+        for index_name, label in all_indexes:
             try:
                 resp = es_client.delete_by_query(index=index_name, body={"query": {"match_all": {}}})
                 results[label] = resp.get("deleted", 0)
