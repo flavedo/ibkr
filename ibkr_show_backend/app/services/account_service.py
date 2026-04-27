@@ -140,9 +140,13 @@ class AccountService:
                         "filter": [
                             {"term": {"account_id": account_id}},
                             {"term": {"flow_type": "Dividend"}},
-                            {"term": {"activity_code": "DIV"}},
                             {"range": {"date_time": {"gte": f"{report_year}-01-01", "lte": report_date}}},
-                        ]
+                        ],
+                        "should": [
+                            {"term": {"activity_code": "DIV"}},
+                            {"bool": {"must_not": [{"exists": {"field": "activity_code"}}]}},
+                        ],
+                        "minimum_should_match": 1,
                     }
                 },
                 "aggs": {

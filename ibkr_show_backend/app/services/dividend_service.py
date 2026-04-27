@@ -52,8 +52,8 @@ class DividendService:
             pagination=PaginationInfo(
                 page=page,
                 page_size=page_size,
+                total=total,
                 total_pages=(total + page_size - 1) // page_size if total > 0 else 0,
-                total_records=total,
             ),
         )
 
