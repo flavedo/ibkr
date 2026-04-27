@@ -59,8 +59,26 @@ async def import_csv(file: UploadFile = File(...)) -> dict:
 
             settings = get_settings()
             es_writer = ElasticsearchWriter(settings)
-            result = import_daily_snapshot_file(es_writer, temp_path)
-            return {"success": True, "result": result}
+
+            all_indexes = [
+                (settings.es_account_index, "accounts"),
+                (settings.es_position_index, "positions"),
+                (settings.es_trade_index, "trades"),
+                (settings.es_cash_flow_index, "cash_flows"),
+                (settings.es_price_history_index, "price_history"),
+            ]
+
+            cleared = {}
+            for index_name, label in all_indexes:
+                try:
+                    resp = es_writer.delete_by_query(index=index_name, body={"query": {"match_all": {}}})
+                    cleared[label] = resp.get("deleted", 0)
+                except Exception:
+                    cleared[label] = 0
+
+            import_result = import_daily_snapshot_file(es_writer, temp_path)
+            import_result["cleared"] = cleared
+            return {"success": True, "result": import_result}
         finally:
             os.unlink(temp_path)
     except Exception as e:
