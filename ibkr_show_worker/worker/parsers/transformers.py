@@ -915,16 +915,16 @@ def _transform_position_daily_snapshots(
 
         existing = documents_by_id.get(document_id)
         if existing is not None:
-            agg_qty = (existing.get("quantity") or 0) + (quantity or 0)
-            agg_pos_value = (existing.get("position_value") or 0) + (position_value or 0)
-            agg_cost_basis = (existing.get("cost_basis_money") or 0) + (cost_basis_money or 0)
-            agg_avg_price = abs(agg_cost_basis / agg_qty) if agg_qty else None
-
-            existing["quantity"] = agg_qty or existing.get("quantity")
-            existing["position_value"] = agg_pos_value or existing.get("position_value")
-            existing["cost_basis_money"] = agg_cost_basis or existing.get("cost_basis_money")
-            existing["average_cost_price"] = agg_avg_price
-            existing["cost_basis_price"] = None
+            existing_qty = abs(existing.get("quantity") or 0)
+            current_qty = abs(quantity or 0)
+            if current_qty > existing_qty:
+                existing["quantity"] = quantity
+                existing["position_value"] = position_value
+                existing["cost_basis_money"] = cost_basis_money
+                existing["average_cost_price"] = average_cost_price
+                existing["cost_basis_price"] = cost_basis_price
+                existing["percent_of_nav"] = _get_number(row, "PercentOfNAV", "Percent of NAV")
+                existing["mark_price"] = mark_price
             continue
 
         document = {
