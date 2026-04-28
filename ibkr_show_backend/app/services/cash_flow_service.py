@@ -48,8 +48,8 @@ class CashFlowService:
                 effective_start.isoformat() if effective_start else None,
                 effective_end.isoformat() if effective_end else None,
             ),
-            build_term_filter("currency", currency),
-            build_term_filter("flow_direction", flow_direction),
+            build_term_filter("currency.keyword", currency),
+            build_term_filter("flow_direction.keyword", flow_direction),
         ]
         body = build_search_body(
             filters=[item for item in filters if item],
@@ -95,8 +95,8 @@ class CashFlowService:
                 effective_start.isoformat() if effective_start else None,
                 effective_end.isoformat() if effective_end else None,
             ),
-            build_term_filter("currency", currency),
-            build_term_filter("flow_direction", flow_direction),
+            build_term_filter("currency.keyword", currency),
+            build_term_filter("flow_direction.keyword", flow_direction),
         ]
         response = self.es_client.search(
             index=self.settings.es_cash_flow_index,
@@ -104,28 +104,27 @@ class CashFlowService:
                 "size": 0,
                 "query": {"bool": {"filter": [item for item in filters if item] or [{"match_all": {}}]}},
                 "aggs": {
-                    "deposit_count": {"filter": {"term": {"flow_direction": "deposit"}}},
-                    "withdrawal_count": {"filter": {"term": {"flow_direction": "withdrawal"}}},
-                    "total_deposit_amount": {"sum": {"field": "amount"}},
+                    "deposit_count": {"filter": {"term": {"flow_direction.keyword": "deposit"}}},
+                    "withdrawal_count": {"filter": {"term": {"flow_direction.keyword": "withdrawal"}}},
                     "deposit_only_amount": {
-                        "filter": {"term": {"flow_direction": "deposit"}},
+                        "filter": {"term": {"flow_direction.keyword": "deposit"}},
                         "aggs": {"amount": {"sum": {"field": "amount"}}},
                     },
                     "withdrawal_only_amount": {
-                        "filter": {"term": {"flow_direction": "withdrawal"}},
+                        "filter": {"term": {"flow_direction.keyword": "withdrawal"}},
                         "aggs": {"amount": {"sum": {"field": "amount"}}},
                     },
                     "by_currency": {
-                        "terms": {"field": "currency", "size": 20},
+                        "terms": {"field": "currency.keyword", "size": 20},
                         "aggs": {
-                            "deposit_count": {"filter": {"term": {"flow_direction": "deposit"}}},
-                            "withdrawal_count": {"filter": {"term": {"flow_direction": "withdrawal"}}},
+                            "deposit_count": {"filter": {"term": {"flow_direction.keyword": "deposit"}}},
+                            "withdrawal_count": {"filter": {"term": {"flow_direction.keyword": "withdrawal"}}},
                             "deposit_only_amount": {
-                                "filter": {"term": {"flow_direction": "deposit"}},
+                                "filter": {"term": {"flow_direction.keyword": "deposit"}},
                                 "aggs": {"amount": {"sum": {"field": "amount"}}},
                             },
                             "withdrawal_only_amount": {
-                                "filter": {"term": {"flow_direction": "withdrawal"}},
+                                "filter": {"term": {"flow_direction.keyword": "withdrawal"}},
                                 "aggs": {"amount": {"sum": {"field": "amount"}}},
                             },
                         },

@@ -51,8 +51,8 @@ class PositionService:
 
         filters = [
             build_term_filter("report_date", effective_report_date),
-            build_term_filter("symbol", symbol),
-            build_term_filter("asset_class", asset_class),
+            build_term_filter("symbol.keyword", symbol),
+            build_term_filter("asset_class.keyword", asset_class),
         ]
         body = build_search_body(
             filters=[item for item in filters if item],
@@ -389,9 +389,9 @@ class PositionService:
         if account_ids:
             filters.append({"terms": {"account_id": account_ids}})
         if asset_classes:
-            filters.append({"terms": {"asset_class": asset_classes}})
+            filters.append({"terms": {"asset_class.keyword": asset_classes}})
         if symbols:
-            filters.append({"terms": {"symbol": symbols}})
+            filters.append({"terms": {"symbol.keyword": symbols}})
 
         lookup: dict[tuple[str, str, str], float] = {}
         after_key: dict | None = None
@@ -401,8 +401,8 @@ class PositionService:
                 "size": 1000,
                 "sources": [
                     {"account_id": {"terms": {"field": "account_id"}}},
-                    {"asset_class": {"terms": {"field": "asset_class"}}},
-                    {"symbol": {"terms": {"field": "symbol"}}},
+                    {"asset_class": {"terms": {"field": "asset_class.keyword"}}},
+                    {"symbol": {"terms": {"field": "symbol.keyword"}}},
                 ],
             }
             if after_key is not None:

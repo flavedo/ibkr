@@ -22,7 +22,7 @@ class DividendService:
         page_size: int = 20,
     ) -> DividendListResponse:
         must_clauses: list[dict[str, Any]] = [
-            {"term": {"flow_type": "Dividend"}},
+            {"term": {"flow_type.keyword": "Dividend"}},
             {"bool": {"should": [{"range": {"amount": {"gt": 0}}}, {"bool": {"must_not": {"exists": {"field": "amount"}}}}]}},
         ]
 
@@ -31,7 +31,7 @@ class DividendService:
         if end_date:
             must_clauses.append({"range": {"date_time": {"lte": end_date}}})
         if symbol:
-            must_clauses.append({"term": {"symbol": symbol.upper()}})
+            must_clauses.append({"term": {"symbol.keyword": symbol.upper()}})
 
         response = self.es_client.search(
             index=self.settings.es_cash_flow_index,
@@ -64,7 +64,7 @@ class DividendService:
         symbol: str | None = None,
     ) -> DividendSummaryResponse:
         must_clauses: list[dict[str, Any]] = [
-            {"term": {"flow_type": "Dividend"}},
+            {"term": {"flow_type.keyword": "Dividend"}},
             {"bool": {"should": [{"range": {"amount": {"gt": 0}}}, {"bool": {"must_not": {"exists": {"field": "amount"}}}}]}},
         ]
 
@@ -73,7 +73,7 @@ class DividendService:
         if end_date:
             must_clauses.append({"range": {"date_time": {"lte": end_date}}})
         if symbol:
-            must_clauses.append({"term": {"symbol": symbol.upper()}})
+            must_clauses.append({"term": {"symbol.keyword": symbol.upper()}})
 
         response = self.es_client.search(
             index=self.settings.es_cash_flow_index,

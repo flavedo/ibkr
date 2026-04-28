@@ -91,12 +91,12 @@ class TradeService:
                 "size": 0,
                 "query": {"bool": {"filter": filters or [{"match_all": {}}]}},
                 "aggs": {
-                    "buy_count": {"filter": {"term": {"buy_sell": "BUY"}}},
-                    "sell_count": {"filter": {"term": {"buy_sell": "SELL"}}},
+                    "buy_count": {"filter": {"term": {"buy_sell.keyword": "BUY"}}},
+                    "sell_count": {"filter": {"term": {"buy_sell.keyword": "SELL"}}},
                     "total_commission": {"sum": {"field": "ib_commission"}},
                     "total_realized_pnl": {"sum": {"field": "fifo_pnl_realized"}},
                     "total_proceeds": {"sum": {"field": "proceeds"}},
-                    "symbols_count": {"cardinality": {"field": "symbol"}},
+                    "symbols_count": {"cardinality": {"field": "symbol.keyword"}},
                 },
                 "track_total_hits": True,
             },
@@ -139,9 +139,9 @@ class TradeService:
     ) -> list[dict]:
         filters = [
             build_date_range_filter("trade_date", start_date, end_date),
-            build_term_filter("symbol", symbol),
-            build_term_filter("asset_class", asset_class),
-            build_term_filter("buy_sell", buy_sell),
+            build_term_filter("symbol.keyword", symbol),
+            build_term_filter("asset_class.keyword", asset_class),
+            build_term_filter("buy_sell.keyword", buy_sell),
         ]
         return [item for item in filters if item]
 
