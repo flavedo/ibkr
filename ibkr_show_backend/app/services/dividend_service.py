@@ -23,7 +23,6 @@ class DividendService:
     ) -> DividendListResponse:
         must_clauses: list[dict[str, Any]] = [
             {"term": {"flow_type": "Dividend"}},
-            {"term": {"activity_code": "DIV"}},
         ]
 
         if start_date:
@@ -65,7 +64,6 @@ class DividendService:
     ) -> DividendSummaryResponse:
         must_clauses: list[dict[str, Any]] = [
             {"term": {"flow_type": "Dividend"}},
-            {"term": {"activity_code": "DIV"}},
         ]
 
         if start_date:
