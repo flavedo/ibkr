@@ -361,6 +361,9 @@ class PositionService:
                 realized_pnl,
                 document.get("cost_basis_money"),
             )
+            unrealized_pnl = document.get("total_unrealized_pnl")
+            if realized_pnl is not None and unrealized_pnl is not None:
+                document["total_fifo_pnl"] = realized_pnl + float(unrealized_pnl)
 
     def _fetch_trade_realized_pnl_lookup(
         self,

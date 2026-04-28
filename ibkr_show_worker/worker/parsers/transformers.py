@@ -843,7 +843,7 @@ def _transform_position_daily_snapshots(
     security_lookup = _build_security_lookup(statement.get_section("SECU"))
     price_history_lookup = _build_price_history_lookup(statement.get_section("PPPO"))
 
-    documents: list[dict] = []
+    documents_by_id: dict[str, dict] = {}
     for row in post_section.rows:
         merge_key = _build_position_merge_key(row, report_date)
         fifo_row = fifo_lookup.get(merge_key, {})
@@ -861,6 +861,7 @@ def _transform_position_daily_snapshots(
         mark_price = _get_number(row, "MarkPrice", "Mark Price", "ClosePrice")
         cost_basis_price = _get_number(row, "CostBasisPrice", "Cost Basis Price")
         cost_basis_money = _get_number(row, "CostBasisMoney", "CostBasis", "Cost Basis")
+        position_value = _get_number(row, "PositionValue", "MarketValue", "Position Value")
         mytd_realized_pnl_ytd = _get_number(
             mytd_row,
             "RealizedPNLYTD",
@@ -910,8 +911,24 @@ def _transform_position_daily_snapshots(
             quantity=quantity,
         )
 
+        document_id = build_position_snapshot_id(account_id, report_date, asset_class, conid or symbol)
+
+        existing = documents_by_id.get(document_id)
+        if existing is not None:
+            agg_qty = (existing.get("quantity") or 0) + (quantity or 0)
+            agg_pos_value = (existing.get("position_value") or 0) + (position_value or 0)
+            agg_cost_basis = (existing.get("cost_basis_money") or 0) + (cost_basis_money or 0)
+            agg_avg_price = abs(agg_cost_basis / agg_qty) if agg_qty else None
+
+            existing["quantity"] = agg_qty or existing.get("quantity")
+            existing["position_value"] = agg_pos_value or existing.get("position_value")
+            existing["cost_basis_money"] = agg_cost_basis or existing.get("cost_basis_money")
+            existing["average_cost_price"] = agg_avg_price
+            existing["cost_basis_price"] = None
+            continue
+
         document = {
-            "_id": build_position_snapshot_id(account_id, report_date, asset_class, conid or symbol),
+            "_id": document_id,
             "account_id": account_id,
             "report_date": report_date,
             "currency": _get_value(row, "Currency", "BaseCurrency")
@@ -937,7 +954,7 @@ def _transform_position_daily_snapshots(
             ),
             "quantity": quantity,
             "mark_price": mark_price,
-            "position_value": _get_number(row, "PositionValue", "MarketValue", "Position Value"),
+            "position_value": position_value,
             "open_price": _get_number(row, "OpenPrice", "Open Price"),
             "cost_basis_price": cost_basis_price,
             "average_cost_price": average_cost_price,
@@ -974,9 +991,9 @@ def _transform_position_daily_snapshots(
             "source_query_type": source_query_type,
             "ingested_at": utc_now_iso(),
         }
-        documents.append(_clean_document(document))
+        documents_by_id[document_id] = document
 
-    return documents
+    return [_clean_document(doc) for doc in documents_by_id.values()]
 
 
 def _transform_trade_records(statement: FlexStatement, source_query_type: str) -> list[dict]:
