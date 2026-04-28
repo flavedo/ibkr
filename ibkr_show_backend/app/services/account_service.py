@@ -141,6 +141,7 @@ class AccountService:
                             {"term": {"account_id": account_id}},
                             {"term": {"flow_type": "Dividend"}},
                             {"range": {"date_time": {"gte": f"{report_year}-01-01", "lte": report_date}}},
+                            {"range": {"amount": {"gt": 0}}},
                         ],
                     }
                 },

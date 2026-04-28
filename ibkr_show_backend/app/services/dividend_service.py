@@ -23,6 +23,7 @@ class DividendService:
     ) -> DividendListResponse:
         must_clauses: list[dict[str, Any]] = [
             {"term": {"flow_type": "Dividend"}},
+            {"range": {"amount": {"gt": 0}}},
         ]
 
         if start_date:
@@ -64,6 +65,7 @@ class DividendService:
     ) -> DividendSummaryResponse:
         must_clauses: list[dict[str, Any]] = [
             {"term": {"flow_type": "Dividend"}},
+            {"range": {"amount": {"gt": 0}}},
         ]
 
         if start_date:

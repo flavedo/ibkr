@@ -4,6 +4,13 @@ import tempfile
 from worker.clients.es_client import ElasticsearchWriter
 from worker.clients.flex_client import FlexClient
 from worker.core.config import Settings, get_settings
+from worker.es.index_definitions import (
+    ACCOUNT_INDEX,
+    CASH_FLOW_INDEX,
+    POSITION_INDEX,
+    PRICE_HISTORY_INDEX,
+    TRADE_INDEX,
+)
 from worker.jobs.import_daily_snapshot import import_daily_snapshot_file
 
 
@@ -23,11 +30,11 @@ def pull_daily_incremental(
 
     if clear_first:
         all_indexes = [
-            (settings.es_account_index, "accounts"),
-            (settings.es_position_index, "positions"),
-            (settings.es_trade_index, "trades"),
-            (settings.es_cash_flow_index, "cash_flows"),
-            (settings.es_price_history_index, "price_history"),
+            (ACCOUNT_INDEX, "accounts"),
+            (POSITION_INDEX, "positions"),
+            (TRADE_INDEX, "trades"),
+            (CASH_FLOW_INDEX, "cash_flows"),
+            (PRICE_HISTORY_INDEX, "price_history"),
         ]
         for index_name, _ in all_indexes:
             try:
