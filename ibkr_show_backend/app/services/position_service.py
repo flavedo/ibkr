@@ -387,7 +387,7 @@ class PositionService:
         asset_classes = sorted({key[1] for key in position_keys})
         symbols = sorted({key[2] for key in position_keys})
         if account_ids:
-            filters.append({"terms": {"account_id": account_ids}})
+            filters.append({"terms": {"account_id.keyword": account_ids}})
         if asset_classes:
             filters.append({"terms": {"asset_class.keyword": asset_classes}})
         if symbols:
@@ -400,7 +400,7 @@ class PositionService:
             composite = {
                 "size": 1000,
                 "sources": [
-                    {"account_id": {"terms": {"field": "account_id"}}},
+                    {"account_id": {"terms": {"field": "account_id.keyword"}}},
                     {"asset_class": {"terms": {"field": "asset_class.keyword"}}},
                     {"symbol": {"terms": {"field": "symbol.keyword"}}},
                 ],
