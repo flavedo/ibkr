@@ -583,6 +583,8 @@ def _transform_stfu_dividend_rows(
 
         amount_in_base = amount * fx_rate_to_base if amount is not None and fx_rate_to_base is not None else amount
 
+        flow_direction = "deposit" if amount is not None and amount >= 0 else "withdrawal"
+
         document = {
             "_id": build_cash_flow_record_id(
                 account_id=account_id,
@@ -604,7 +606,7 @@ def _transform_stfu_dividend_rows(
             "tax": None,
             "fx_rate_to_base": fx_rate_to_base,
             "amount_in_base": amount_in_base,
-            "flow_direction": "deposit",
+            "flow_direction": flow_direction,
             "flow_type": "Dividend",
             "dividend_type": _get_value(row, "SubCategory"),
             "quantity": None,
@@ -653,6 +655,8 @@ def _transform_dividend_rows(
         if level_of_detail in {"SUMMARY"}:
             continue
 
+        flow_direction = "deposit" if net_amount is not None and net_amount >= 0 else "withdrawal"
+
         document = {
             "_id": build_cash_flow_record_id(
                 account_id=account_id,
@@ -674,7 +678,7 @@ def _transform_dividend_rows(
             "tax": tax,
             "fx_rate_to_base": fx_rate_to_base,
             "amount_in_base": amount_in_base,
-            "flow_direction": "deposit",
+            "flow_direction": flow_direction,
             "flow_type": "Dividend",
             "dividend_type": _get_value(row, "SubCategory"),
             "quantity": quantity,
