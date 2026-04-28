@@ -157,7 +157,7 @@ class ChartService:
                 "query": {
                     "bool": {
                         "filter": [
-                            {"term": {"account_id": account_id}},
+                            {"term": {"account_id.keyword": account_id}},
                             {"range": {"date_time": {"lte": effective_end.isoformat()}}},
                         ]
                     }
@@ -178,7 +178,7 @@ class ChartService:
                 "query": {
                     "bool": {
                         "filter": [
-                            {"term": {"account_id": account_id}},
+                            {"term": {"account_id.keyword": account_id}},
                             {"range": {"trade_date": {"lte": effective_end.isoformat()}}},
                         ]
                     }

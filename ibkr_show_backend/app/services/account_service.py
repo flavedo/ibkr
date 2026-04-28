@@ -105,7 +105,7 @@ class AccountService:
                 "query": {
                     "bool": {
                         "filter": [
-                            {"term": {"account_id": account_id}},
+                            {"term": {"account_id.keyword": account_id}},
                             {"range": {"report_date": {"gte": f"{report_year}-01-01", "lte": report_date}}},
                         ]
                     }
@@ -138,7 +138,7 @@ class AccountService:
                 "query": {
                     "bool": {
                         "filter": [
-                            {"term": {"account_id": account_id}},
+                            {"term": {"account_id.keyword": account_id}},
                             {"term": {"flow_type.keyword": "Dividend"}},
                             {"range": {"date_time": {"gte": f"{report_year}-01-01", "lte": report_date}}},
                             {"range": {"amount": {"gt": 0}}},
@@ -162,7 +162,7 @@ class AccountService:
                 "query": {
                     "bool": {
                         "filter": [
-                            {"term": {"account_id": account_id}},
+                            {"term": {"account_id.keyword": account_id}},
                             {"exists": {"field": "ib_commission"}},
                             {"range": {"report_date": {"gte": f"{report_year}-01-01", "lte": report_date}}},
                         ]
@@ -184,7 +184,7 @@ class AccountService:
                 "query": {
                     "bool": {
                         "filter": [
-                            {"term": {"account_id": account_id}},
+                            {"term": {"account_id.keyword": account_id}},
                             {"range": {"trade_date": {"lte": report_date}}},
                         ]
                     }
@@ -206,7 +206,7 @@ class AccountService:
                 "query": {
                     "bool": {
                         "filter": [
-                            {"term": {"account_id": account_id}},
+                            {"term": {"account_id.keyword": account_id}},
                             {"term": {"report_date": report_date}},
                         ]
                     }
