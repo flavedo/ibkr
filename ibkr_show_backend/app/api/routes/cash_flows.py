@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.api.deps import get_cash_flow_service, require_authenticated_session
-from app.core.auth import AuthSession
+from app.api.deps import get_cash_flow_service
 from app.clients.es_client import ESClientError
 from app.schemas.cash_flows import CashFlowListResponse, CashFlowSummaryResponse
 from app.services.cash_flow_service import CashFlowService
@@ -19,7 +18,6 @@ def list_cash_flows(
     sort_order: str = Query(default="desc"),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=200),
-    _auth_session: AuthSession = Depends(require_authenticated_session),
     service: CashFlowService = Depends(get_cash_flow_service),
 ) -> CashFlowListResponse:
     try:
@@ -45,7 +43,6 @@ def get_cash_flow_summary(
     end_date: str | None = Query(default=None),
     currency: str | None = Query(default=None),
     flow_direction: str | None = Query(default=None),
-    _auth_session: AuthSession = Depends(require_authenticated_session),
     service: CashFlowService = Depends(get_cash_flow_service),
 ) -> CashFlowSummaryResponse:
     try:

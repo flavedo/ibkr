@@ -24,10 +24,6 @@ class Settings:
     app_port: int
     cors_allow_origins: str
     cors_allow_origin_regex: str
-    auth_username: str
-    auth_password: str
-    auth_session_secret: str
-    auth_session_max_age_seconds: int
     es_host: str
     es_username: str
     es_password: str
@@ -51,10 +47,6 @@ def get_settings() -> Settings:
             "http://localhost:5173,http://127.0.0.1:5173",
         ),
         cors_allow_origin_regex=os.getenv("CORS_ALLOW_ORIGIN_REGEX", r"https?://.*"),
-        auth_username=os.getenv("AUTH_USERNAME", "admin"),
-        auth_password=os.getenv("AUTH_PASSWORD", "change-me"),
-        auth_session_secret=os.getenv("AUTH_SESSION_SECRET", "change-me-session-secret"),
-        auth_session_max_age_seconds=int(os.getenv("AUTH_SESSION_MAX_AGE_SECONDS", "604800")),
         es_host=os.getenv("ES_HOST", "http://localhost:9200"),
         es_username=os.getenv("ES_USERNAME", ""),
         es_password=os.getenv("ES_PASSWORD", ""),

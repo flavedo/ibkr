@@ -1,25 +1,15 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import Tag from 'primevue/tag'
 
-import { useAuthSession } from '@/auth/session'
 import { fetchAccountOverview } from '@/api/account'
 import { clearData, importCSV, triggerDataRefresh } from '@/api/data'
 import type { AccountOverview } from '@/types/account'
 
 const route = useRoute()
 const router = useRouter()
-const { authState, ensureAuthSession, loginWithCredentials, logoutCurrentSession } = useAuthSession()
 const overview = ref<AccountOverview | null>(null)
-const showLoginDialog = ref(false)
-const loginError = ref('')
-const loginForm = reactive({
-  username: '',
-  password: '',
-})
 const isRefreshing = ref(false)
 const isImporting = ref(false)
 const isClearing = ref(false)
@@ -99,16 +89,8 @@ const navItems = [
   { label: '出入金', icon: 'pi pi-wallet', to: '/cash-flows' },
 ]
 
-const visibleNavItems = computed(() =>
-  authState.authenticated ? navItems : navItems.filter((item) => item.to === '/' || item.to === '/positions'),
-)
-
 function isActive(path: string): boolean {
   return route.path === path
-}
-
-function isProtectedPath(path: string): boolean {
-  return path === '/trades' || path === '/dividends' || path === '/cash-flows'
 }
 
 function navigate(path: string): void {
@@ -119,7 +101,6 @@ function formatNumber(value: number | null, digits = 2): string {
   if (value === null) {
     return '--'
   }
-
   return new Intl.NumberFormat('zh-CN', {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
@@ -134,41 +115,7 @@ async function loadOverview(): Promise<void> {
   }
 }
 
-function openLoginDialog(): void {
-  loginError.value = ''
-  loginForm.username = authState.username ?? ''
-  loginForm.password = ''
-  showLoginDialog.value = true
-}
-
-function closeLoginDialog(): void {
-  showLoginDialog.value = false
-  loginError.value = ''
-  loginForm.password = ''
-}
-
-async function submitLogin(): Promise<void> {
-  loginError.value = ''
-
-  try {
-    await loginWithCredentials(loginForm.username.trim(), loginForm.password)
-    closeLoginDialog()
-    showToast('登录成功', 'success')
-  } catch (error) {
-    loginError.value = error instanceof Error ? error.message : '登录失败'
-  }
-}
-
-async function handleLogout(): Promise<void> {
-  await logoutCurrentSession()
-  if (isProtectedPath(route.path)) {
-    await router.push('/')
-  }
-  showToast('已退出登录', 'success')
-}
-
 onMounted(() => {
-  void ensureAuthSession()
   void loadOverview()
   refreshTimer = window.setInterval(() => {
     void loadOverview()
@@ -191,7 +138,7 @@ onUnmounted(() => {
       <div class="app-header__row">
         <nav class="app-header__nav">
           <Button
-            v-for="item in visibleNavItems"
+            v-for="item in navItems"
             :key="item.to"
             :label="item.label"
             :icon="item.icon"
@@ -202,8 +149,6 @@ onUnmounted(() => {
         </nav>
 
         <div class="app-header__right">
-          <Tag class="p-tag p-tag--accent app-header__live-tag" value="LIVE API"></Tag>
-
           <div class="app-header__metrics">
             <span class="app-header__metric">
               <span class="terminal-note">报告日期</span>
@@ -255,18 +200,6 @@ onUnmounted(() => {
               style="display: none"
               @change="handleFileChange"
             />
-            <Button
-              v-if="!authState.authenticated"
-              icon="pi pi-sign-in"
-              class="p-button p-button--ghost action-button"
-              @click="openLoginDialog"
-            />
-            <Button
-              v-else
-              icon="pi pi-sign-out"
-              class="p-button p-button--ghost action-button"
-              @click="handleLogout"
-            />
           </div>
         </div>
       </div>
@@ -278,47 +211,6 @@ onUnmounted(() => {
       </div>
     </transition>
   </header>
-
-  <div v-if="showLoginDialog" class="auth-dialog-backdrop" @click.self="closeLoginDialog">
-    <section class="surface-panel auth-dialog">
-      <div class="surface-panel__content auth-dialog__content">
-        <div class="auth-dialog__header">
-          <div>
-            <p class="eyebrow">ACCESS</p>
-            <h2 class="auth-dialog__title">登录后可查看交易和出入金模块</h2>
-          </div>
-          <Button
-            icon="pi pi-times"
-            class="p-button p-button--ghost auth-dialog__close"
-            aria-label="关闭登录弹窗"
-            @click="closeLoginDialog"
-          />
-        </div>
-
-        <form class="auth-dialog__form" @submit.prevent="submitLogin">
-          <label class="field-stack">
-            <span class="field-stack__label">用户名</span>
-            <InputText v-model="loginForm.username" type="text" autocomplete="username" />
-          </label>
-          <label class="field-stack">
-            <span class="field-stack__label">密码</span>
-            <InputText v-model="loginForm.password" type="password" autocomplete="current-password" />
-          </label>
-          <p v-if="loginError" class="auth-dialog__error">{{ loginError }}</p>
-          <div class="auth-dialog__actions">
-            <Button label="取消" type="button" class="p-button p-button--ghost" @click="closeLoginDialog" />
-            <Button
-              label="登录"
-              icon="pi pi-sign-in"
-              type="submit"
-              class="p-button p-button--accent"
-              :loading="authState.loading"
-            />
-          </div>
-        </form>
-      </div>
-    </section>
-  </div>
 </template>
 
 <style scoped>
@@ -368,10 +260,6 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-}
-
-.app-header__live-tag {
-  font-size: 0.7rem;
 }
 
 .app-header__metrics {
@@ -451,75 +339,6 @@ onUnmounted(() => {
 .toast-fade-leave-to {
   opacity: 0;
   transform: translateX(-50%) translateY(-10px);
-}
-
-.auth-dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: rgba(7, 14, 29, 0.7);
-  backdrop-filter: blur(10px);
-}
-
-.auth-dialog {
-  width: min(460px, 100%);
-}
-
-.auth-dialog__content {
-  display: grid;
-  gap: 20px;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-.auth-dialog__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.auth-dialog__title {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.auth-dialog__close {
-  min-width: 44px;
-  min-height: 44px;
-}
-
-.auth-dialog__form {
-  display: grid;
-  gap: 16px;
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.auth-dialog__form :deep(.p-inputtext) {
-  width: 100%;
-  font-size: 1rem;
-}
-
-.auth-dialog__error {
-  margin: 0;
-  color: var(--color-loss);
-}
-
-.auth-dialog__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.auth-dialog__actions :deep(.p-button) {
-  min-width: auto;
-  min-height: 38px;
-  padding: 0.6rem 1rem;
-  font-size: 0.95rem;
 }
 
 @media (max-width: 1200px) {

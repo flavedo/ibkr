@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.api.deps import get_trade_service, require_authenticated_session
-from app.core.auth import AuthSession
+from app.api.deps import get_trade_service
 from app.clients.es_client import ESClientError
 from app.schemas.trades import TradeListResponse, TradeSummaryResponse
 from app.services.trade_service import TradeService
@@ -20,7 +19,6 @@ def list_trades(
     sort_order: str = Query(default="desc"),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=200),
-    _auth_session: AuthSession = Depends(require_authenticated_session),
     service: TradeService = Depends(get_trade_service),
 ) -> TradeListResponse:
     try:
@@ -47,7 +45,6 @@ def get_trade_summary(
     end_date: str | None = Query(default=None),
     symbol: str | None = Query(default=None),
     asset_class: str | None = Query(default=None),
-    _auth_session: AuthSession = Depends(require_authenticated_session),
     service: TradeService = Depends(get_trade_service),
 ) -> TradeSummaryResponse:
     try:
