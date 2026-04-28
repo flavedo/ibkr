@@ -21,20 +21,34 @@ const loginForm = reactive({
   password: '',
 })
 const isRefreshing = ref(false)
-const refreshError = ref('')
+const isImporting = ref(false)
 const isClearing = ref(false)
-const clearMessage = ref('')
 let refreshTimer: number | null = null
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
+const toastMessage = ref('')
+const toastType = ref<'success' | 'error'>('success')
+let toastTimer: number | null = null
+
+function showToast(message: string, type: 'success' | 'error' = 'success'): void {
+  toastMessage.value = message
+  toastType.value = type
+  if (toastTimer !== null) {
+    window.clearTimeout(toastTimer)
+  }
+  toastTimer = window.setTimeout(() => {
+    toastMessage.value = ''
+  }, 4000)
+}
+
 async function handleRefresh(): Promise<void> {
   isRefreshing.value = true
-  refreshError.value = ''
   try {
     await triggerDataRefresh()
     await loadOverview()
+    showToast('数据已刷新', 'success')
   } catch (error) {
-    refreshError.value = error instanceof Error ? error.message : '刷新失败'
+    showToast(error instanceof Error ? error.message : '刷新失败', 'error')
   } finally {
     isRefreshing.value = false
   }
@@ -45,13 +59,12 @@ async function handleClear(): Promise<void> {
     return
   }
   isClearing.value = true
-  clearMessage.value = ''
   try {
     const result = await clearData()
-    clearMessage.value = `已清除 cash_flows: ${result.deleted?.cash_flows ?? 0}, trades: ${result.deleted?.trades ?? 0}`
+    showToast(`已清除 cash_flows: ${result.deleted?.cash_flows ?? 0}, trades: ${result.deleted?.trades ?? 0}`, 'success')
     await loadOverview()
   } catch (error) {
-    clearMessage.value = error instanceof Error ? error.message : '清除失败'
+    showToast(error instanceof Error ? error.message : '清除失败', 'error')
   } finally {
     isClearing.value = false
   }
@@ -65,32 +78,29 @@ async function handleFileChange(event: Event): Promise<void> {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
-  isRefreshing.value = true
-  refreshError.value = ''
+  isImporting.value = true
   try {
     await importCSV(file)
     await loadOverview()
+    showToast('CSV 导入成功', 'success')
   } catch (error) {
-    refreshError.value = error instanceof Error ? error.message : '导入失败'
+    showToast(error instanceof Error ? error.message : '导入失败', 'error')
   } finally {
-    isRefreshing.value = false
+    isImporting.value = false
     input.value = ''
   }
 }
 
-const baseNavItems = [
+const navItems = [
   { label: '总览', icon: 'pi pi-chart-line', to: '/' },
   { label: '持仓', icon: 'pi pi-briefcase', to: '/positions' },
-]
-
-const protectedNavItems = [
   { label: '交易', icon: 'pi pi-list', to: '/trades' },
   { label: '分红', icon: 'pi pi-dollar', to: '/dividends' },
   { label: '出入金', icon: 'pi pi-wallet', to: '/cash-flows' },
 ]
 
-const navItems = computed(() =>
-  authState.authenticated ? [...baseNavItems, ...protectedNavItems] : baseNavItems,
+const visibleNavItems = computed(() =>
+  authState.authenticated ? navItems : navItems.filter((item) => item.to === '/' || item.to === '/positions'),
 )
 
 function isActive(path: string): boolean {
@@ -143,6 +153,7 @@ async function submitLogin(): Promise<void> {
   try {
     await loginWithCredentials(loginForm.username.trim(), loginForm.password)
     closeLoginDialog()
+    showToast('登录成功', 'success')
   } catch (error) {
     loginError.value = error instanceof Error ? error.message : '登录失败'
   }
@@ -153,6 +164,7 @@ async function handleLogout(): Promise<void> {
   if (isProtectedPath(route.path)) {
     await router.push('/')
   }
+  showToast('已退出登录', 'success')
 }
 
 onMounted(() => {
@@ -167,76 +179,41 @@ onUnmounted(() => {
   if (refreshTimer !== null) {
     window.clearInterval(refreshTimer)
   }
+  if (toastTimer !== null) {
+    window.clearTimeout(toastTimer)
+  }
 })
 </script>
 
 <template>
   <header class="app-header surface-panel">
     <div class="surface-panel__content app-header__content">
-      <div class="app-header__brand">
-        <div>
-          <p class="eyebrow">IBKR SHOW</p>
-          <h1 class="app-header__title">IBKR 账户可视化分析</h1>
-        </div>
-        <div class="app-header__status">
-          <div class="app-header__status-row">
-            <Tag class="p-tag p-tag--accent" value="LIVE API"></Tag>
-            <Button
-              label="刷新数据"
-              icon="pi pi-refresh"
-              class="p-button p-button--ghost app-header__auth-button"
-              :loading="isRefreshing"
-              @click="handleRefresh"
-            />
-            <Button
-              label="导入CSV"
-              icon="pi pi-upload"
-              class="p-button p-button--ghost app-header__auth-button"
-              @click="handleImportClick"
-            />
-            <Button
-              label="清除数据"
-              icon="pi pi-trash"
-              class="p-button p-button--ghost app-header__auth-button"
-              :loading="isClearing"
-              @click="handleClear"
-            />
-            <input
-              ref="fileInputRef"
-              type="file"
-              accept=".csv"
-              style="display: none"
-              @change="handleFileChange"
-            />
-            <Button
-              v-if="!authState.authenticated"
-              label="登录"
-              icon="pi pi-sign-in"
-              class="p-button p-button--ghost app-header__auth-button"
-              @click="openLoginDialog"
-            />
-            <div v-else class="app-header__auth-session">
-              <span class="terminal-note">已登录：{{ authState.username }}</span>
-              <Button
-                label="退出"
-                icon="pi pi-sign-out"
-                class="p-button p-button--ghost app-header__auth-button"
-                @click="handleLogout"
-              />
-            </div>
-          </div>
-          <p v-if="refreshError" class="refresh-error">{{ refreshError }}</p>
-          <p v-if="clearMessage" class="refresh-error">{{ clearMessage }}</p>
+      <div class="app-header__row">
+        <nav class="app-header__nav">
+          <Button
+            v-for="item in visibleNavItems"
+            :key="item.to"
+            :label="item.label"
+            :icon="item.icon"
+            class="nav-button"
+            :class="{ 'is-active': isActive(item.to) }"
+            @click="navigate(item.to)"
+          />
+        </nav>
+
+        <div class="app-header__right">
+          <Tag class="p-tag p-tag--accent app-header__live-tag" value="LIVE API"></Tag>
+
           <div class="app-header__metrics">
-            <div class="app-header__metric">
+            <span class="app-header__metric">
               <span class="terminal-note">报告日期</span>
               <strong>{{ overview?.report_date ?? '--' }}</strong>
-            </div>
-            <div class="app-header__metric">
+            </span>
+            <span class="app-header__metric">
               <span class="terminal-note">总权益</span>
               <strong>{{ formatNumber(overview?.total_equity ?? null) }}</strong>
-            </div>
-            <div class="app-header__metric">
+            </span>
+            <span class="app-header__metric">
               <span class="terminal-note">总盈亏</span>
               <strong
                 :class="
@@ -249,23 +226,57 @@ onUnmounted(() => {
               >
                 {{ formatNumber(overview?.fifo_total_pnl ?? null) }}
               </strong>
-            </div>
+            </span>
+          </div>
+
+          <div class="app-header__actions">
+            <Button
+              icon="pi pi-refresh"
+              class="p-button p-button--ghost action-button"
+              :loading="isRefreshing"
+              @click="handleRefresh"
+            />
+            <Button
+              icon="pi pi-upload"
+              class="p-button p-button--ghost action-button"
+              :loading="isImporting"
+              @click="handleImportClick"
+            />
+            <Button
+              icon="pi pi-trash"
+              class="p-button p-button--ghost action-button"
+              :loading="isClearing"
+              @click="handleClear"
+            />
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept=".csv"
+              style="display: none"
+              @change="handleFileChange"
+            />
+            <Button
+              v-if="!authState.authenticated"
+              icon="pi pi-sign-in"
+              class="p-button p-button--ghost action-button"
+              @click="openLoginDialog"
+            />
+            <Button
+              v-else
+              icon="pi pi-sign-out"
+              class="p-button p-button--ghost action-button"
+              @click="handleLogout"
+            />
           </div>
         </div>
       </div>
-
-      <nav class="app-header__nav">
-        <Button
-          v-for="item in navItems"
-          :key="item.to"
-          :label="item.label"
-          :icon="item.icon"
-          class="terminal-nav__button"
-          :class="{ 'is-active': isActive(item.to) }"
-          @click="navigate(item.to)"
-        />
-      </nav>
     </div>
+
+    <transition name="toast-fade">
+      <div v-if="toastMessage" class="app-header__toast" :class="`app-header__toast--${toastType}`">
+        {{ toastMessage }}
+      </div>
+    </transition>
   </header>
 
   <div v-if="showLoginDialog" class="auth-dialog-backdrop" @click.self="closeLoginDialog">
@@ -313,88 +324,133 @@ onUnmounted(() => {
 <style scoped>
 .app-header__content {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
-.app-header__brand {
+.app-header__row {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
-  align-items: flex-end;
-}
-
-.app-header__title {
-  margin: 0;
-  font-size: clamp(2rem, 4vw, 3rem);
-  letter-spacing: -0.04em;
-}
-
-.app-header__status {
-  display: grid;
-  gap: 14px;
-  justify-items: end;
-}
-
-.app-header__status-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  justify-content: flex-end;
+  gap: var(--space-3);
   flex-wrap: wrap;
-}
-
-.app-header__auth-session {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.app-header__auth-button {
-  min-width: 92px;
 }
 
 .app-header__nav {
   display: flex;
+  gap: 6px;
   flex-wrap: wrap;
-  gap: 18px;
+}
+
+.nav-button {
+  min-width: 80px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+
+.nav-button.is-active {
+  border-color: rgba(86, 213, 255, 0.3);
+  background: linear-gradient(180deg, rgba(32, 79, 129, 0.94), rgba(16, 45, 81, 0.96));
+  box-shadow: 0 0 20px rgba(62, 169, 255, 0.12);
+}
+
+.nav-button :deep(.p-button-icon) {
+  font-size: 1rem;
+}
+
+.nav-button :deep(.p-button-label) {
+  font-size: 0.9rem;
+}
+
+.app-header__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.app-header__live-tag {
+  font-size: 0.7rem;
 }
 
 .app-header__metrics {
   display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
 }
 
 .app-header__metric {
-  display: grid;
-  gap: 4px;
-  min-width: 116px;
-  padding: 0.3rem 0.7rem;
-  border: 1px solid rgba(74, 196, 255, 0.16);
-  border-radius: 14px;
-  background: rgba(10, 21, 44, 0.22);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid rgba(74, 196, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(10, 21, 44, 0.18);
+  white-space: nowrap;
 }
 
 .app-header__metric strong {
-  font-size: 1.05rem;
+  font-size: 0.9rem;
 }
 
-.terminal-nav__button {
-  min-width: 240px;
-  min-height: 64px;
-  padding: 0 28px;
-  border-radius: 14px;
-  font-size: 1.4rem;
+.app-header__metric .terminal-note {
+  font-size: 0.75rem;
 }
 
-:deep(.terminal-nav__button .p-button-label) {
-  font-size: 1.55rem;
-  font-weight: 700;
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-:deep(.terminal-nav__button .p-button-icon) {
-  font-size: 1.45rem;
+.action-button {
+  min-width: 38px;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+}
+
+.action-button :deep(.p-button-icon) {
+  font-size: 1rem;
+}
+
+.app-header__toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.app-header__toast--success {
+  background: rgba(9, 47, 39, 0.95);
+  border: 1px solid rgba(52, 210, 163, 0.4);
+  color: var(--color-positive);
+}
+
+.app-header__toast--error {
+  background: rgba(55, 18, 28, 0.95);
+  border: 1px solid rgba(255, 107, 125, 0.4);
+  color: var(--color-negative);
+}
+
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-10px);
 }
 
 .auth-dialog-backdrop {
@@ -453,13 +509,6 @@ onUnmounted(() => {
   color: var(--color-loss);
 }
 
-.refresh-error {
-  margin: 0;
-  color: var(--color-loss);
-  font-size: 0.875rem;
-  max-width: 300px;
-}
-
 .auth-dialog__actions {
   display: flex;
   justify-content: flex-end;
@@ -473,32 +522,33 @@ onUnmounted(() => {
   font-size: 0.95rem;
 }
 
-@media (max-width: 768px) {
-  .app-header__brand {
+@media (max-width: 1200px) {
+  .app-header__row {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .app-header__status {
-    justify-items: stretch;
+  .app-header__right {
+    justify-content: space-between;
   }
 
-  .app-header__status-row {
-    justify-content: flex-start;
+  .app-header__nav {
+    justify-content: center;
   }
+}
 
-  .terminal-nav__button {
-    min-width: calc(50% - 9px);
-    min-height: 58px;
-    padding: 0 18px;
-  }
-
-  :deep(.terminal-nav__button .p-button-label) {
-    font-size: 1.25rem;
+@media (max-width: 768px) {
+  .app-header__right {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .app-header__metrics {
-    justify-content: flex-start;
+    justify-content: center;
+  }
+
+  .app-header__actions {
+    justify-content: center;
   }
 }
 </style>

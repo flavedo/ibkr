@@ -5,7 +5,6 @@ import InputText from 'primevue/inputtext'
 import Paginator from 'primevue/paginator'
 
 import { fetchCashFlows, fetchCashFlowSummary } from '@/api/cashFlows'
-import { importCSV } from '@/api/data'
 import CashFlowTable from '@/components/CashFlowTable.vue'
 import ErrorBlock from '@/components/ErrorBlock.vue'
 import LoadingBlock from '@/components/LoadingBlock.vue'
@@ -24,12 +23,6 @@ const state = reactive({
   page: 1,
   page_size: 20,
 })
-
-const fileInput = ref<HTMLInputElement | null>(null)
-const showImportDialog = ref(false)
-const isImporting = ref(false)
-const importMessage = ref('')
-const importSuccess = ref(false)
 
 const cashFlowItems = ref<CashFlowItem[]>([])
 const cashFlowSummary = ref<CashFlowSummaryResponse | null>(null)
@@ -84,45 +77,6 @@ async function loadCashFlows(): Promise<void> {
 function applyFilters(): void {
   state.page = 1
   void loadCashFlows()
-}
-
-function openImportDialog(): void {
-  importMessage.value = ''
-  importSuccess.value = false
-  showImportDialog.value = true
-}
-
-function closeImportDialog(): void {
-  showImportDialog.value = false
-  importMessage.value = ''
-  importSuccess.value = false
-}
-
-function triggerFileInput(): void {
-  fileInput.value?.click()
-}
-
-async function handleFileChange(event: Event): Promise<void> {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file) return
-
-  isImporting.value = true
-  importMessage.value = ''
-  importSuccess.value = false
-
-  try {
-    const result = await importCSV(file)
-    importSuccess.value = true
-    importMessage.value = `导入成功！${JSON.stringify(result.result)}`
-    target.value = ''
-    void loadCashFlows()
-  } catch (error) {
-    importSuccess.value = false
-    importMessage.value = error instanceof Error ? error.message : '导入失败'
-  } finally {
-    isImporting.value = false
-  }
 }
 
 function setDirection(nextDirection: 'deposit' | 'withdrawal'): void {
@@ -241,50 +195,10 @@ onMounted(() => {
           </div>
           <div class="field-stack field-stack--action">
             <Button label="刷新出入金" icon="pi pi-wallet" class="p-button p-button--accent" type="submit" />
-            <Button label="导入CSV" icon="pi pi-upload" class="p-button p-button--ghost" @click="openImportDialog" />
           </div>
         </form>
       </div>
     </section>
-
-    <div v-if="showImportDialog" class="import-dialog-backdrop" @click.self="closeImportDialog">
-      <section class="surface-panel import-dialog">
-        <div class="surface-panel__content import-dialog__content">
-          <div class="import-dialog__header">
-            <div>
-              <p class="eyebrow">IMPORT</p>
-              <h2 class="import-dialog__title">导入历史 CSV 文件</h2>
-            </div>
-            <Button
-              icon="pi pi-times"
-              class="p-button p-button--ghost"
-              @click="closeImportDialog"
-            />
-          </div>
-          <div class="import-dialog__body">
-            <p class="import-dialog__desc">选择要导入的 Flex CSV 文件（包含历史数据）</p>
-            <input
-              ref="fileInput"
-              type="file"
-              accept=".csv"
-              style="display: none"
-              @change="handleFileChange"
-            />
-            <Button
-              label="选择文件"
-              icon="pi pi-folder-open"
-              class="p-button p-button--accent import-dialog__button"
-              :loading="isImporting"
-              :ripple="false"
-              @click="triggerFileInput"
-            />
-            <p v-if="importMessage" :class="['import-dialog__message', importSuccess ? 'is-success' : 'is-error']">
-              {{ importMessage }}
-            </p>
-          </div>
-        </div>
-      </section>
-    </div>
 
     <LoadingBlock v-if="loading" />
     <ErrorBlock v-else-if="errorMessage" :message="errorMessage" />
@@ -395,67 +309,6 @@ onMounted(() => {
   background: linear-gradient(135deg, rgba(60, 146, 255, 0.95), rgba(25, 92, 182, 0.95));
   border-color: rgba(116, 194, 255, 0.75);
   box-shadow: 0 0 0 1px rgba(116, 194, 255, 0.25) inset;
-}
-
-.import-dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: rgba(7, 14, 29, 0.7);
-  backdrop-filter: blur(10px);
-}
-
-.import-dialog {
-  width: min(480px, 100%);
-}
-
-.import-dialog__content {
-  display: grid;
-  gap: 20px;
-}
-
-.import-dialog__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.import-dialog__title {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.import-dialog__body {
-  display: grid;
-  gap: 16px;
-}
-
-.import-dialog__desc {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: 0.95rem;
-}
-
-.import-dialog__message {
-  margin: 0;
-  font-size: 0.95rem;
-}
-
-.import-dialog__message.is-success {
-  color: var(--color-profit);
-}
-
-.import-dialog__message.is-error {
-  color: var(--color-loss);
-}
-
-.import-dialog__button {
-  overflow: hidden;
-  position: relative;
 }
 
 @media (max-width: 1200px) {
