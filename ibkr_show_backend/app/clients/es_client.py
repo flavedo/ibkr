@@ -1,7 +1,7 @@
 import logging
 
 from elasticsearch import Elasticsearch
-from elasticsearch import NotFoundError
+from elasticsearch import NotFoundError, TransportError
 from elasticsearch.exceptions import ConnectionError as ESConnectionError
 
 from app.core.config import Settings
@@ -19,6 +19,10 @@ class ESUnavailableError(ESClientError):
 
 class ESIndexNotFoundError(ESClientError):
     """Raised when a requested index does not exist."""
+
+
+class ESQueryError(ESClientError):
+    """Raised when an Elasticsearch query fails."""
 
 
 class ElasticsearchClient:
@@ -47,6 +51,9 @@ class ElasticsearchClient:
             raise ESIndexNotFoundError(f"Elasticsearch index not found: {index}") from exc
         except ESConnectionError as exc:
             raise ESUnavailableError("Elasticsearch is not reachable.") from exc
+        except TransportError as exc:
+            logger.error("ES transport error on index %s: %s", index, exc.error)
+            raise ESQueryError(f"Elasticsearch query error on index {index}: {exc.error}") from exc
 
     def delete_by_query(self, index: str, body: dict) -> dict:
         try:
@@ -55,4 +62,7 @@ class ElasticsearchClient:
             raise ESIndexNotFoundError(f"Elasticsearch index not found: {index}") from exc
         except ESConnectionError as exc:
             raise ESUnavailableError("Elasticsearch is not reachable.") from exc
+        except TransportError as exc:
+            logger.error("ES transport error on index %s: %s", index, exc.error)
+            raise ESQueryError(f"Elasticsearch query error on index {index}: {exc.error}") from exc
 
