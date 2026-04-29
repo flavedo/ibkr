@@ -94,10 +94,10 @@ def test_get_equity_curve_builds_equity_pnl_and_net_cost_series() -> None:
     assert [item.realized_pnl for item in response.items] == [12.0, 12.0, 20.0]
     assert response.items[0].daily_mtm is None
     assert response.items[1].daily_mtm == pytest.approx(10.000001)
-    assert response.items[2].daily_mtm == pytest.approx(-2.0)
+    assert response.items[2].daily_mtm == pytest.approx(9.999999)
     assert response.items[0].daily_twr is None
     assert response.items[1].daily_twr == pytest.approx(10.000001)
-    assert response.items[2].daily_twr == pytest.approx(-1.2)
+    assert response.items[2].daily_twr == pytest.approx(7.692307)
 
 
 def test_get_equity_curve_drops_near_zero_inferred_daily_pnl() -> None:

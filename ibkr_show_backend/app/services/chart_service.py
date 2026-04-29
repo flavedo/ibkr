@@ -70,19 +70,15 @@ class ChartService:
             if total_equity is not None and net_cost is not None:
                 total_pnl = float(total_equity) - float(net_cost)
 
-            daily_mtm = source.get("cnav_mtm")
-            daily_mtm_inferred = False
-            if daily_mtm is None and total_equity is not None and previous_total_equity is not None:
+            daily_mtm = None
+            if total_equity is not None and previous_total_equity is not None:
                 daily_mtm = float(total_equity) - float(previous_total_equity) - daily_net_flows.get(report_date, 0.0)
-                daily_mtm_inferred = True
                 if abs(float(daily_mtm)) < INFERRED_DAILY_PNL_EPSILON:
                     daily_mtm = 0.0
 
-            daily_twr = source.get("cnav_twr")
-            if daily_twr is None and daily_mtm is not None and previous_total_equity not in (None, 0, 0.0):
+            daily_twr = None
+            if daily_mtm is not None and previous_total_equity not in (None, 0, 0.0):
                 daily_twr = float(daily_mtm) / abs(float(previous_total_equity)) * 100.0
-            if daily_mtm_inferred and daily_mtm == 0.0:
-                daily_twr = 0.0
 
             items.append(
                 EquityCurvePoint(
