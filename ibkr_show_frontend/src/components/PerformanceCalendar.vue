@@ -191,18 +191,15 @@ function formatSignedInteger(value: number | null): string {
   if (value === null) {
     return '--'
   }
-  if (value === 0) {
-    return '无变化'
-  }
   const rounded = Math.round(value)
+  if (rounded === 0) {
+    return '0'
+  }
   return `${rounded > 0 ? '+' : ''}${new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 }).format(rounded)}`
 }
 
 function formatSignedPercent(value: number | null): string {
   if (value === null) {
-    return ''
-  }
-  if (value === 0) {
     return ''
   }
   return `${value > 0 ? '+' : ''}${new Intl.NumberFormat('zh-CN', {
