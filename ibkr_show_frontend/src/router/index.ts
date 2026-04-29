@@ -24,6 +24,11 @@ const router = createRouter({
       component: () => import('@/views/DividendView.vue'),
     },
     {
+      path: '/financial-calendar',
+      name: 'financial-calendar',
+      component: () => import('@/views/FinancialCalendarView.vue'),
+    },
+    {
       path: '/cash-flows',
       name: 'cash-flows',
       component: () => import('@/views/CashFlowsView.vue'),

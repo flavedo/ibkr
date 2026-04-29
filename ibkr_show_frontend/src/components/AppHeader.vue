@@ -86,6 +86,7 @@ const navItems = [
   { label: '持仓', icon: 'pi pi-briefcase', to: '/positions' },
   { label: '交易', icon: 'pi pi-list', to: '/trades' },
   { label: '分红', icon: 'pi pi-dollar', to: '/dividends' },
+  { label: '财经', icon: 'pi pi-calendar', to: '/financial-calendar' },
   { label: '出入金', icon: 'pi pi-wallet', to: '/cash-flows' },
 ]
 
