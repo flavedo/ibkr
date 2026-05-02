@@ -7,6 +7,7 @@ import { fetchEarningsCalendar, fetchEconomicCalendar } from '@/api/financialCal
 import type { EarningsEvent, EconomicEvent } from '@/api/financialCalendar'
 import ErrorBlock from '@/components/ErrorBlock.vue'
 import LoadingBlock from '@/components/LoadingBlock.vue'
+import MarketSentimentCard from '@/components/MarketSentimentCard.vue'
 
 const activeTab = ref<'earnings' | 'economic'>('earnings')
 const earningsEvents = ref<EarningsEvent[]>([])
@@ -130,6 +131,8 @@ onMounted(() => {
               </button>
             </div>
           </div>
+
+          <MarketSentimentCard />
 
           <div class="calendar-panel__tabs">
             <button
