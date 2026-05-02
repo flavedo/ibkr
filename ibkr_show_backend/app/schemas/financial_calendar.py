@@ -17,6 +17,7 @@ class EarningsCalendarResponse(BaseModel):
 
 
 class EconomicEvent(BaseModel):
+    event_name: str | None = None
     region: str
     event_time: str | None = None
     for_period: str | None = None

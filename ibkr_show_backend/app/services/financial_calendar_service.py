@@ -56,9 +56,11 @@ class FinancialCalendarService:
             expected = row.get("Expected")
             last = row.get("Last")
             revised = row.get("Revised")
+            event_name = row.get("Event")
 
             items.append(
                 EconomicEvent(
+                    event_name=str(event_name) if event_name is not None and str(event_name) != "nan" else None,
                     region=str(row["Region"]),
                     event_time=time_str,
                     for_period=str(row.get("For", "")),

@@ -12,6 +12,7 @@ export interface EarningsEvent {
 }
 
 export interface EconomicEvent {
+  event_name: string | null
   region: string
   event_time: string | null
   for_period: string | null

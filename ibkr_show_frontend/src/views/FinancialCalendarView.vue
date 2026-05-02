@@ -198,17 +198,18 @@ onMounted(() => {
               <table class="data-table">
                 <thead>
                   <tr>
+                    <th>事件</th>
                     <th>地区</th>
                     <th>时间</th>
                     <th>对应月份</th>
                     <th class="table-col--number">实际值</th>
                     <th class="table-col--number">预期值</th>
                     <th class="table-col--number">前值</th>
-                    <th class="table-col--number">修正</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="(item, index) in economicEvents" :key="index">
+                    <td class="cell-event-name">{{ item.event_name ?? '--' }}</td>
                     <td>
                       <span class="region-flag">{{ item.region }}</span>
                     </td>
@@ -217,7 +218,6 @@ onMounted(() => {
                     <td class="table-col--number">{{ formatNullable(item.actual) }}</td>
                     <td class="table-col--number">{{ formatNullable(item.expected) }}</td>
                     <td class="table-col--number">{{ formatNullable(item.last) }}</td>
-                    <td class="table-col--number">{{ formatNullable(item.revised) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -321,6 +321,14 @@ onMounted(() => {
 
 .cell-company {
   font-weight: 600;
+}
+
+.cell-event-name {
+  font-weight: 500;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .region-flag {
