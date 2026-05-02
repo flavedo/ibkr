@@ -41,6 +41,7 @@ class FinancialCalendarService:
                 )
             )
 
+        items.sort(key=lambda x: x.date_time or "")
         return EarningsCalendarResponse(items=items)
 
     def get_economic_events(self, start_date: str, end_date: str) -> EconomicCalendarResponse:
@@ -68,6 +69,7 @@ class FinancialCalendarService:
                 )
             )
 
+        items.sort(key=lambda x: x.event_time or "")
         return EconomicCalendarResponse(items=items)
 
 
