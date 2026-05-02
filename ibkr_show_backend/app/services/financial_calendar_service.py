@@ -47,6 +47,7 @@ class FinancialCalendarService:
     def get_economic_events(self, start_date: str, end_date: str) -> EconomicCalendarResponse:
         cal = yf.Calendars(start=start_date, end=end_date)
         df = cal.get_economic_events_calendar()
+        df = df.reset_index()
 
         items: list[EconomicEvent] = []
         for _, row in df.iterrows():
