@@ -1,8 +1,8 @@
 import logging
 from functools import lru_cache
 
-import requests
 import yfinance as yf
+import fear_and_greed
 
 from app.schemas.market_sentiment import (
     FearGreedRange,
@@ -70,16 +70,12 @@ class MarketSentimentService:
 
     def _fetch_fear_greed(self) -> dict | None:
         try:
-            resp = requests.get(
-                "https://api.alternative.me/fng/?limit=1",
-                headers={"User-Agent": "Mozilla/5.0"},
-                timeout=10,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            entries = data.get("data", [])
-            if entries:
-                return entries[0]
+            result = fear_and_greed.get()
+            return {
+                "value": result.value,
+                "classification": result.description,
+                "timestamp": int(result.last_update.timestamp()),
+            }
         except Exception as exc:
             logger.warning("获取 Fear & Greed 数据失败: %s", exc)
         return None

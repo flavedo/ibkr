@@ -7,3 +7,4 @@ elasticsearch>=8,<9
 pytest
 httpx
 yfinance
+fear-and-greed
