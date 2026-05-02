@@ -60,6 +60,11 @@ function strategySummary(): string {
   return `${vixWord} · ${fgWord}`
 }
 
+function formatValue(val: number | null): string {
+  if (val === null || val === undefined) return '--'
+  return val.toFixed(2)
+}
+
 async function loadData(): Promise<void> {
   loading.value = true
   try {
@@ -101,7 +106,7 @@ onMounted(() => {
             <span class="gauge-sublabel">波动率指数</span>
           </div>
           <div class="gauge-body">
-            <span class="gauge-value gauge-value--green">{{ data.vix_value ?? '--' }}</span>
+            <span class="gauge-value gauge-value--green">{{ formatValue(data.vix_value) }}</span>
             <span
               v-if="data.vix_level"
               class="gauge-badge gauge-badge--green"
@@ -135,7 +140,7 @@ onMounted(() => {
             <span class="gauge-sublabel">恐惧与贪婪指数</span>
           </div>
           <div class="gauge-body">
-            <span class="gauge-value gauge-value--yellow">{{ data.fear_greed_value ?? '--' }}</span>
+            <span class="gauge-value gauge-value--yellow">{{ formatValue(data.fear_greed_value) }}</span>
             <span
               v-if="data.fear_greed_level"
               class="gauge-badge gauge-badge--yellow"
