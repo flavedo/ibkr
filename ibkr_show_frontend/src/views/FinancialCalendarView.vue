@@ -160,6 +160,7 @@ onMounted(() => {
               <table class="data-table">
                 <thead>
                   <tr>
+                    <th>代码</th>
                     <th>公司</th>
                     <th>市值</th>
                     <th>事件</th>
@@ -171,6 +172,7 @@ onMounted(() => {
                 </thead>
                 <tbody>
                   <tr v-for="(item, index) in earningsEvents" :key="index">
+                    <td class="cell-symbol">{{ item.symbol ?? '--' }}</td>
                     <td class="cell-company">{{ item.company }}</td>
                     <td class="table-col--number">{{ formatMarketcap(item.marketcap) }}</td>
                     <td>{{ item.event_name ?? '--' }}</td>
@@ -317,6 +319,13 @@ onMounted(() => {
 .table-col--number {
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+.cell-symbol {
+  font-weight: 600;
+  font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+  color: var(--primitive-color-blue-400);
+  white-space: nowrap;
 }
 
 .cell-company {

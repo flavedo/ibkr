@@ -2,6 +2,7 @@ from pydantic import BaseModel
 
 
 class EarningsEvent(BaseModel):
+    symbol: str | None = None
     company: str
     marketcap: float | None = None
     event_name: str | None = None

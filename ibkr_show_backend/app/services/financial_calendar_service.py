@@ -18,6 +18,7 @@ class FinancialCalendarService:
     def get_earnings(self, start_date: str, end_date: str) -> EarningsCalendarResponse:
         cal = yf.Calendars(start=start_date, end=end_date)
         df = cal.get_earnings_calendar()
+        df = df.reset_index()
 
         items: list[EarningsEvent] = []
         for _, row in df.iterrows():
@@ -30,6 +31,7 @@ class FinancialCalendarService:
 
             items.append(
                 EarningsEvent(
+                    symbol=str(row["Symbol"]),
                     company=str(row["Company"]),
                     marketcap=float(cap) if cap is not None and not _is_nan(cap) else None,
                     event_name=str(row["Event Name"]) if str(row["Event Name"]) != "nan" else None,

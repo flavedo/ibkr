@@ -1,6 +1,7 @@
 import { request } from './http'
 
 export interface EarningsEvent {
+  symbol: string | null
   company: string
   marketcap: number | null
   event_name: string | null
