@@ -107,6 +107,8 @@ onMounted(() => {
 
 <template>
   <section class="page-section">
+    <MarketSentimentCard />
+
     <Card class="surface-panel calendar-panel">
       <template #content>
         <div class="surface-panel__content">
@@ -131,8 +133,6 @@ onMounted(() => {
               </button>
             </div>
           </div>
-
-          <MarketSentimentCard />
 
           <div class="calendar-panel__tabs">
             <button
@@ -235,6 +235,10 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.page-section :deep(.sentiment-card) {
+  margin-bottom: var(--space-5);
+}
+
 .calendar-panel__header {
   display: flex;
   justify-content: space-between;
