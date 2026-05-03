@@ -1,4 +1,5 @@
 import { request } from './http'
+import { withCache } from '@/utils/cache'
 
 export interface EarningsEvent {
   symbol: string | null
@@ -43,9 +44,15 @@ function toQueryString(params: Record<string, string | number | undefined | null
 }
 
 export function fetchEarningsCalendar(startDate: string, endDate: string): Promise<EarningsCalendarResponse> {
-  return request<EarningsCalendarResponse>(`/api/financial-calendar/earnings${toQueryString({ start_date: startDate, end_date: endDate })}`)
+  return withCache(
+    `earnings_${startDate}_${endDate}`,
+    () => request<EarningsCalendarResponse>(`/api/financial-calendar/earnings${toQueryString({ start_date: startDate, end_date: endDate })}`)
+  )
 }
 
 export function fetchEconomicCalendar(startDate: string, endDate: string): Promise<EconomicCalendarResponse> {
-  return request<EconomicCalendarResponse>(`/api/financial-calendar/economic-events${toQueryString({ start_date: startDate, end_date: endDate })}`)
+  return withCache(
+    `economic_${startDate}_${endDate}`,
+    () => request<EconomicCalendarResponse>(`/api/financial-calendar/economic-events${toQueryString({ start_date: startDate, end_date: endDate })}`)
+  )
 }

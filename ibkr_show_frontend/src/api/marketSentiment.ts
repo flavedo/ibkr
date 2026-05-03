@@ -1,4 +1,5 @@
 import { request } from './http'
+import { withCache } from '@/utils/cache'
 
 export interface VixRange {
   label: string
@@ -26,5 +27,8 @@ export interface MarketSentimentResponse {
 }
 
 export function fetchMarketSentiment(): Promise<MarketSentimentResponse> {
-  return request<MarketSentimentResponse>('/api/market-sentiment/')
+  return withCache(
+    'market_sentiment',
+    () => request<MarketSentimentResponse>('/api/market-sentiment/')
+  )
 }
