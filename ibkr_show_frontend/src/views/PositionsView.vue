@@ -362,13 +362,13 @@ async function openPositionDetail(item: PositionItem): Promise<void> {
 
 .positions-summary-section {
   display: grid;
-  grid-template-columns: 320px 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: var(--space-4);
   margin-bottom: var(--space-5);
 }
 
 .summary-card {
-  height: fit-content;
+  height: 100%;
 }
 
 .summary-panel--compact {
@@ -461,9 +461,9 @@ async function openPositionDetail(item: PositionItem): Promise<void> {
   padding-top: 0;
 }
 
-@media (max-width: 1400px) {
+@media (max-width: 1200px) {
   .positions-summary-section {
-    grid-template-columns: 280px 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
   .positions-summary-section > :last-child {
@@ -471,7 +471,7 @@ async function openPositionDetail(item: PositionItem): Promise<void> {
   }
 }
 
-@media (max-width: 980px) {
+@media (max-width: 780px) {
   .positions-summary-section {
     grid-template-columns: 1fr;
   }

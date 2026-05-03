@@ -149,62 +149,6 @@ onMounted(() => {
 
 <template>
   <section class="page-section">
-    <section class="surface-panel">
-      <div class="surface-panel__content">
-        <div class="section-header">
-          <div>
-            <h2 class="panel-title">筛选与排序</h2>
-            <p class="panel-subtitle">按时间、币种和方向查看历史入金与出金流水。</p>
-          </div>
-        </div>
-
-        <form class="cash-flow-filters" @submit.prevent="applyFilters">
-          <label class="field-stack">
-            <span class="field-stack__label">开始日期</span>
-            <InputText v-model="state.start_date" type="date" class="filter-input" />
-          </label>
-          <label class="field-stack">
-            <span class="field-stack__label">结束日期</span>
-            <InputText v-model="state.end_date" type="date" class="filter-input" />
-          </label>
-          <label class="field-stack">
-            <span class="field-stack__label">币种</span>
-            <InputText v-model="state.currency" type="text" placeholder="USD / CNH / HKD" class="filter-input" />
-          </label>
-          <div class="field-stack">
-            <div class="cash-flow-direction__label-row">
-              <span class="field-stack__label">方向</span>
-              <span class="cash-flow-direction__helper">默认全部</span>
-            </div>
-            <div class="cash-flow-direction">
-              <button
-                type="button"
-                class="side-btn"
-                :class="{ 'side-btn--active': state.flow_direction === 'deposit' }"
-                @click="setDirection('deposit')"
-              >
-                入金
-              </button>
-              <button
-                type="button"
-                class="side-btn"
-                :class="{ 'side-btn--active': state.flow_direction === 'withdrawal' }"
-                @click="setDirection('withdrawal')"
-              >
-                出金
-              </button>
-            </div>
-          </div>
-          <div class="field-stack field-stack--action">
-            <button type="submit" class="refresh-btn">
-              <i class="pi pi-refresh"></i>
-              刷新出入金
-            </button>
-          </div>
-        </form>
-      </div>
-    </section>
-
     <LoadingBlock v-if="loading" />
     <ErrorBlock v-else-if="errorMessage" :message="errorMessage" />
 
@@ -213,6 +157,62 @@ onMounted(() => {
         <StatCard title="流水笔数" :value="String(cashFlowSummary?.record_count ?? 0)" icon="pi pi-list" tone="accent" />
         <StatCard title="入金笔数" :value="String(cashFlowSummary?.deposit_count ?? 0)" icon="pi pi-arrow-down-left" tone="positive" />
         <StatCard title="出金笔数" :value="String(cashFlowSummary?.withdrawal_count ?? 0)" icon="pi pi-arrow-up-right" tone="negative" />
+      </section>
+
+      <section class="surface-panel">
+        <div class="surface-panel__content">
+          <div class="section-header">
+            <div>
+              <h2 class="panel-title">筛选与排序</h2>
+              <p class="panel-subtitle">按时间、币种和方向查看历史入金与出金流水。</p>
+            </div>
+          </div>
+
+          <form class="cash-flow-filters" @submit.prevent="applyFilters">
+            <label class="field-stack">
+              <span class="field-stack__label">开始日期</span>
+              <InputText v-model="state.start_date" type="date" class="filter-input" />
+            </label>
+            <label class="field-stack">
+              <span class="field-stack__label">结束日期</span>
+              <InputText v-model="state.end_date" type="date" class="filter-input" />
+            </label>
+            <label class="field-stack">
+              <span class="field-stack__label">币种</span>
+              <InputText v-model="state.currency" type="text" placeholder="USD / CNH / HKD" class="filter-input" />
+            </label>
+            <div class="field-stack">
+              <div class="cash-flow-direction__label-row">
+                <span class="field-stack__label">方向</span>
+                <span class="cash-flow-direction__helper">默认全部</span>
+              </div>
+              <div class="cash-flow-direction">
+                <button
+                  type="button"
+                  class="side-btn"
+                  :class="{ 'side-btn--active': state.flow_direction === 'deposit' }"
+                  @click="setDirection('deposit')"
+                >
+                  入金
+                </button>
+                <button
+                  type="button"
+                  class="side-btn"
+                  :class="{ 'side-btn--active': state.flow_direction === 'withdrawal' }"
+                  @click="setDirection('withdrawal')"
+                >
+                  出金
+                </button>
+              </div>
+            </div>
+            <div class="field-stack field-stack--action">
+              <button type="submit" class="refresh-btn">
+                <i class="pi pi-refresh"></i>
+                刷新出入金
+              </button>
+            </div>
+          </form>
+        </div>
       </section>
 
       <section v-if="currencySummaries.length > 0" class="currency-summary-list">
