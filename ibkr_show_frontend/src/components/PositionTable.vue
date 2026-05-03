@@ -238,8 +238,8 @@ function onRowClick(event: { data: PositionItem }): void {
 }
 
 .cell-metric__sub {
-  font-size: 0.82rem;
-  opacity: 0.82;
+  font-size: 0.8rem;
+  opacity: 0.85;
 }
 
 .sort-button {
@@ -263,7 +263,7 @@ function onRowClick(event: { data: PositionItem }): void {
 }
 
 .position-datatable :deep(.table-col--symbol) {
-  width: 23%;
+  width: 22%;
 }
 
 .position-datatable :deep(.table-col--qty) {
@@ -275,11 +275,11 @@ function onRowClick(event: { data: PositionItem }): void {
 }
 
 .position-datatable :deep(.table-col--day) {
-  width: 7%;
+  width: 6.5%;
 }
 
 .position-datatable :deep(.table-col--pnl) {
-  width: 10%;
+  width: 10.5%;
 }
 
 .position-datatable :deep(.table-col--cost) {
@@ -300,10 +300,29 @@ function onRowClick(event: { data: PositionItem }): void {
 
 .position-datatable :deep(.p-datatable-tbody > tr) {
   cursor: pointer;
-  transition: background-color 0.18s ease;
+  transition: all 200ms ease;
+  border-bottom: 1px solid rgba(129, 160, 207, 0.06);
+
+  &:hover > td {
+    background: rgba(86, 213, 255, 0.04);
+  }
 }
 
-.position-datatable :deep(.p-datatable-tbody > tr:hover > td) {
-  background: rgba(86, 213, 255, 0.04);
+.position-datatable :deep(.p-datatable-thead > tr > th) {
+  padding: 14px 12px;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  border-bottom: 2px solid rgba(86, 213, 255, 0.15);
+}
+
+.position-datatable :deep(.p-datatable-tbody > tr > td) {
+  padding: 16px 12px;
+  font-size: 0.92rem;
+  vertical-align: middle;
+}
+
+.table-shell {
+  border-radius: 16px;
+  overflow: hidden;
 }
 </style>

@@ -387,19 +387,19 @@ onUnmounted(() => {
           >
             {{ range.label }}
           </button>
-          <input
-            v-if="selectedRange === 'custom'"
-            v-model="customStartDate"
-            type="date"
-            class="date-input"
-          />
-          <span v-if="selectedRange === 'custom'" class="date-separator">~</span>
-          <input
-            v-if="selectedRange === 'custom'"
-            v-model="customEndDate"
-            type="date"
-            class="date-input"
-          />
+          <template v-if="selectedRange === 'custom'">
+            <input
+              v-model="customStartDate"
+              type="date"
+              class="date-input"
+            />
+            <span class="date-separator">~</span>
+            <input
+              v-model="customEndDate"
+              type="date"
+              class="date-input"
+            />
+          </template>
         </div>
       </div>
     </template>
@@ -576,12 +576,27 @@ onUnmounted(() => {
   background: rgba(15, 23, 42, 0.6);
   color: #e2e8f0;
   font-size: 13px;
+  font-family: inherit;
   outline: none;
   transition: border-color 200ms ease;
-}
+  cursor: pointer;
+  min-width: 130px;
 
-.date-input:focus {
-  border-color: rgba(86, 213, 255, 0.5);
+  &::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.6;
+    cursor: pointer;
+  }
+
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  &:focus {
+    border-color: rgba(86, 213, 255, 0.5);
+  }
 }
 
 .date-separator {

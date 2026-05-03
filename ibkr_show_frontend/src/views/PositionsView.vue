@@ -273,36 +273,37 @@ async function openPositionDetail(item: PositionItem): Promise<void> {
     <ErrorBlock v-else-if="errorMessage" :message="errorMessage" />
 
     <template v-else>
-      <section class="summary-layout summary-layout--triple">
-        <section class="surface-panel">
-          <div class="surface-panel__content summary-panel summary-panel--list">
-          <h3 class="summary-title">持仓集中度</h3>
-          <div v-if="!summary || summary.top_positions.length === 0" class="empty-state empty-state--inline">暂无集中度数据</div>
-          <div v-else class="summary-list">
-            <div v-for="item in summary.top_positions" :key="`${item.asset_class}-${item.symbol}`" class="summary-list__row">
-              <div class="summary-list__meta">
-                <strong>{{ item.symbol ?? '--' }}</strong>
-                <p>{{ item.description ?? '无名称' }}</p>
-              </div>
-              <div class="summary-list__value">
-                <strong>{{ formatNumber(item.position_value, 2) }}</strong>
-                <span>{{ item.percent_of_nav === null ? '--' : `${formatNumber(item.percent_of_nav, 2)}%` }}</span>
+      <section class="positions-summary-section">
+        <section class="surface-panel summary-card">
+          <div class="surface-panel__content summary-panel--compact">
+            <h3 class="summary-title">持仓集中度</h3>
+            <div v-if="!summary || summary.top_positions.length === 0" class="empty-state empty-state--inline">暂无数据</div>
+            <div v-else class="top-positions-list">
+              <div v-for="(item, index) in summary.top_positions.slice(0, 5)" :key="`${item.asset_class}-${item.symbol}`" class="top-position-item">
+                <span class="top-position__rank">{{ index + 1 }}</span>
+                <div class="top-position__info">
+                  <strong>{{ item.symbol ?? '--' }}</strong>
+                  <span>{{ item.description?.slice(0, 20) ?? '无名称' }}</span>
+                </div>
+                <div class="top-position__value">
+                  <strong>{{ formatNumber(item.position_value, 2) }}</strong>
+                  <span>{{ item.percent_of_nav === null ? '--' : `${formatNumber(item.percent_of_nav, 2)}%` }}</span>
+                </div>
               </div>
             </div>
-          </div>
           </div>
         </section>
 
         <PieDistributionCard
           title="资金类别"
-          subtitle="股票、固定收益与现金的当前占比"
+          subtitle="股票、固定收益与现金占比"
           :items="assetPieItems"
           :format-number="formatNumber"
         />
 
         <PieDistributionCard
           title="行业分布"
-          subtitle="基于持仓代码和描述的轻量行业归类"
+          subtitle="基于持仓代码的行业归类"
           :items="industryPieItems"
           :format-number="formatNumber"
         />
@@ -359,6 +360,98 @@ async function openPositionDetail(item: PositionItem): Promise<void> {
   align-content: start;
 }
 
+.positions-summary-section {
+  display: grid;
+  grid-template-columns: 320px 1fr 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.summary-card {
+  height: fit-content;
+}
+
+.summary-panel--compact {
+  padding: 20px;
+}
+
+.top-positions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.top-position-item {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(15, 26, 45, 0.6);
+  border: 1px solid rgba(129, 160, 207, 0.08);
+  transition: all 200ms ease;
+
+  &:hover {
+    background: rgba(25, 45, 75, 0.6);
+    border-color: rgba(86, 213, 255, 0.15);
+    transform: translateX(2px);
+  }
+}
+
+.top-position__rank {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #94a3b8;
+  background: rgba(86, 213, 255, 0.08);
+
+  &:nth-child(1) { color: #56d5ff; background: rgba(86, 213, 255, 0.18); }
+}
+
+.top-position__info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+
+  strong {
+    display: block;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  span {
+    font-size: 0.78rem;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.top-position__value {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+
+  strong {
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  span {
+    font-size: 0.78rem;
+    color: #64748b;
+  }
+}
+
 .position-detail-dialog__body {
   display: grid;
   gap: 0;
@@ -369,14 +462,22 @@ async function openPositionDetail(item: PositionItem): Promise<void> {
 }
 
 @media (max-width: 1400px) {
-  .summary-layout--triple {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .positions-summary-section {
+    grid-template-columns: 280px 1fr;
+  }
+
+  .positions-summary-section > :last-child {
+    grid-column: span 2;
   }
 }
 
 @media (max-width: 980px) {
-  .summary-layout--triple {
+  .positions-summary-section {
     grid-template-columns: 1fr;
+  }
+
+  .positions-summary-section > * {
+    grid-column: auto !important;
   }
 }
 </style>
