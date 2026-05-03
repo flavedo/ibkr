@@ -40,26 +40,32 @@ defineProps<{
 
 <style scoped>
 .stat-card {
-  min-height: 118px;
+  min-height: 96px;
+  transition: transform 200ms ease, box-shadow 200ms ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(2, 10, 24, 0.3);
+  }
 }
 
 .stat-card__row {
   position: relative;
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 10px;
   align-items: start;
 }
 
 .stat-card__delta {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 4px;
+  right: 4px;
   display: grid;
   justify-items: end;
-  gap: 2px;
-  font-size: 0.8rem;
-  line-height: 1.05;
+  gap: 1px;
+  font-size: 0.72rem;
+  line-height: 1.1;
   color: var(--color-text-secondary);
 }
 
@@ -68,24 +74,25 @@ defineProps<{
 }
 
 .stat-card__icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid rgba(86, 213, 255, 0.16);
   background: rgba(10, 38, 57, 0.36);
 }
 
 .stat-card__icon i {
   color: var(--color-accent-strong);
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .stat-card__content {
   display: grid;
   align-content: start;
   min-width: 0;
+  padding-top: 2px;
 }
 
 .stat-card__title,
@@ -95,18 +102,19 @@ defineProps<{
 }
 
 .stat-card__value {
-  margin: 0.35rem 0 0;
-  font-size: clamp(1.45rem, 2.8vw, 1.95rem);
+  margin: 0.25rem 0 0;
+  font-size: clamp(1.25rem, 2.2vw, 1.65rem);
   font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
   white-space: nowrap;
 }
 
 .stat-card__helper {
-  margin-top: 0.35rem;
-  font-size: 0.92rem;
-  min-height: 1rem;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  min-height: 0.9rem;
+  opacity: 0.85;
 }
 
 .stat-card--positive .stat-card__value {

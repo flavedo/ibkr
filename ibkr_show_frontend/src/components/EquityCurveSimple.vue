@@ -1,30 +1,26 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import Card from 'primevue/card'
-import Tag from 'primevue/tag'
 import { use, init, graphic, format, type ComposeOption, type EChartsType } from 'echarts/core'
 import { LineChart, type LineSeriesOption } from 'echarts/charts'
 import {
   DataZoomComponent,
   GridComponent,
-  LegendComponent,
   TooltipComponent,
   type DataZoomComponentOption,
   type GridComponentOption,
-  type LegendComponentOption,
   type TooltipComponentOption,
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 
 import type { EquityCurvePoint } from '@/types/charts'
 
-use([LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, CanvasRenderer])
+use([LineChart, GridComponent, TooltipComponent, DataZoomComponent, CanvasRenderer])
 
 type CurveChartOption = ComposeOption<
   | LineSeriesOption
   | GridComponentOption
   | TooltipComponentOption
-  | LegendComponentOption
   | DataZoomComponentOption
 >
 
@@ -35,87 +31,139 @@ const props = defineProps<{
 
 const chartRef = ref<HTMLDivElement | null>(null)
 const chartInstance = shallowRef<EChartsType | null>(null)
-const activeSeriesKey = ref<'total_equity' | 'total_pnl' | 'net_cost' | 'realized_pnl' | null>(null)
 let resizeObserver: ResizeObserver | null = null
+
+const activeTab = ref<'value' | 'performance'>('value')
+const currency = ref<'CNH' | 'USD'>('CNH')
+const selectedRange = ref<string>('all')
+const customStartDate = ref('')
+const customEndDate = ref('')
+
+const timeRanges = [
+  { key: '1w', label: '1周' },
+  { key: 'mtd', label: '本月迄今' },
+  { key: '1m', label: '1个月' },
+  { key: '3m', label: '3个月' },
+  { key: 'ytd', label: '本年迄今' },
+  { key: '1y', label: '1年' },
+  { key: 'all', label: '全部' },
+  { key: 'custom', label: '自定义' },
+]
 
 const latestPoint = computed(() => props.items[props.items.length - 1] ?? null)
 const firstPoint = computed(() => props.items[0] ?? null)
 
-const seriesControls = computed(() => [
-  {
-    key: 'total_equity' as const,
-    label: '账户权益',
-    helper: latestPoint.value ? `最新 ${props.formatNumber(latestPoint.value.total_equity, 2)}` : '最新 --',
-    color: '#56d5ff',
-  },
-  {
-    key: 'total_pnl' as const,
-    label: '净收益',
-    helper: latestPoint.value ? `最新 ${props.formatNumber(latestPoint.value.total_pnl, 2)}` : '最新 --',
-    color: '#b7e11d',
-  },
-  {
-    key: 'net_cost' as const,
-    label: '净成本',
-    helper: latestPoint.value ? `最新 ${props.formatNumber(latestPoint.value.net_cost, 2)}` : '最新 --',
-    color: '#ffb454',
-  },
-  {
-    key: 'realized_pnl' as const,
-    label: '已实现盈亏',
-    helper: latestPoint.value ? `最新 ${props.formatNumber(latestPoint.value.realized_pnl, 2)}` : '最新 --',
-    color: '#8b7cff',
-  },
-])
-
-const historyTag = computed(() => {
-  if (!firstPoint.value || !latestPoint.value) {
-    return '暂无历史'
+const filteredItems = computed(() => {
+  if (selectedRange.value === 'all' || !firstPoint.value || !latestPoint.value) {
+    return props.items
   }
-  return `${firstPoint.value.report_date} - ${latestPoint.value.report_date}`
+
+  const latestDate = new Date(latestPoint.value.report_date)
+  let startDate: Date
+
+  switch (selectedRange.value) {
+    case '1w':
+      startDate = new Date(latestDate.getTime() - 7 * 24 * 60 * 60 * 1000)
+      break
+    case 'mtd':
+      startDate = new Date(latestDate.getFullYear(), latestDate.getMonth(), 1)
+      break
+    case '1m':
+      startDate = new Date(latestDate.getFullYear(), latestDate.getMonth() - 1, latestDate.getDate())
+      break
+    case '3m':
+      startDate = new Date(latestDate.getFullYear(), latestDate.getMonth() - 3, latestDate.getDate())
+      break
+    case 'ytd':
+      startDate = new Date(latestDate.getFullYear(), 0, 1)
+      break
+    case '1y':
+      startDate = new Date(latestDate.getFullYear() - 1, latestDate.getMonth(), latestDate.getDate())
+      break
+    case 'custom':
+      if (customStartDate.value && customEndDate.value) {
+        startDate = new Date(customStartDate.value)
+        const endDate = new Date(customEndDate.value)
+        return props.items.filter((item) => {
+          const itemDate = new Date(item.report_date)
+          return itemDate >= startDate && itemDate <= endDate
+        })
+      }
+      return props.items
+    default:
+      return props.items
+  }
+
+  return props.items.filter((item) => new Date(item.report_date) >= startDate)
 })
 
-const pointCountTag = computed(() => `${props.items.length} 个日点`)
+const displayData = computed(() => filteredItems.value)
 
-function formatAxisValue(value: number): string {
-  const absolute = Math.abs(value)
-  if (absolute >= 1_000_000) {
-    return `${(value / 1_000_000).toFixed(1)}M`
+const currentValue = computed(() => {
+  if (!latestPoint.value) return null
+  return activeTab.value === 'value' ? latestPoint.value.total_equity : latestPoint.value.daily_twr
+})
+
+const startValue = computed(() => {
+  if (!displayData.value.length) return null
+  const first = displayData.value[0]
+  return activeTab.value === 'value' ? first.total_equity : first.daily_twr
+})
+
+const deltaValue = computed(() => {
+  if (currentValue.value === null || startValue.value === null) return null
+  if (activeTab.value === 'performance') {
+    return currentValue.value - startValue.value
   }
-  if (absolute >= 1_000) {
-    return `${(value / 1_000).toFixed(0)}K`
+  return currentValue.value - startValue.value
+})
+
+const deltaPercent = computed(() => {
+  if (currentValue.value === null || startValue.value === null || startValue.value === 0) return null
+  if (activeTab.value === 'performance') {
+    return currentValue.value - startValue.value
   }
-  return value.toFixed(0)
-}
+  return ((currentValue.value - startValue.value) / Math.abs(startValue.value)) * 100
+})
 
-function isSeriesActive(key: 'total_equity' | 'total_pnl' | 'net_cost' | 'realized_pnl'): boolean {
-  return activeSeriesKey.value === null || activeSeriesKey.value === key
-}
+const dateRangeText = computed(() => {
+  if (!displayData.value.length) return '--'
+  const first = displayData.value[0]
+  const last = displayData.value[displayData.value.length - 1]
+  return `${first.report_date} ~ ${last.report_date}`
+})
 
-function seriesLineStyle(
-  key: 'total_equity' | 'total_pnl' | 'net_cost' | 'realized_pnl',
-  baseWidth: number,
-  color: string,
-): { width: number; color: string; opacity: number } {
-  const active = isSeriesActive(key)
-  return {
-    width: active ? baseWidth + 1 : Math.max(baseWidth - 0.5, 1.5),
-    color,
-    opacity: active ? 1 : 0.24,
+function formatDisplayValue(value: number | null): string {
+  if (value === null) return '--'
+  if (activeTab.value === 'value') {
+    const prefix = currency.value === 'CNH' ? '¥' : '$'
+    return `${prefix}${props.formatNumber(Math.abs(value), 2)}`
   }
+  return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`
 }
 
-function seriesAreaOpacity(key: 'total_equity' | 'total_pnl' | 'net_cost' | 'realized_pnl', activeOpacity: number): number {
-  return isSeriesActive(key) ? activeOpacity : 0.03
+function formatDeltaValue(value: number | null): string {
+  if (value === null) return ''
+  if (activeTab.value === 'value') {
+    const prefix = value > 0 ? '+' : ''
+    const currencySymbol = currency.value === 'CNH' ? '¥' : '$'
+    return `${prefix}${currencySymbol}${props.formatNumber(Math.abs(value), 2)}`
+  }
+  return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`
 }
 
-function toggleSeriesFocus(key: 'total_equity' | 'total_pnl' | 'net_cost' | 'realized_pnl'): void {
-  activeSeriesKey.value = activeSeriesKey.value === key ? null : key
+function isPositive(value: number | null): boolean | null {
+  if (value === null) return null
+  return value > 0
 }
 
-function buildSeriesData(field: 'total_equity' | 'total_pnl' | 'net_cost' | 'realized_pnl'): Array<[string, number]> {
-  return props.items.flatMap((item) => {
-    const value = item[field]
+function selectRange(rangeKey: string): void {
+  selectedRange.value = rangeKey
+}
+
+function buildChartData(): Array<[string, number]> {
+  return displayData.value.flatMap((item) => {
+    const value = activeTab.value === 'value' ? item.total_equity : item.daily_twr
     if (value === null || value === undefined) {
       return []
     }
@@ -128,18 +176,19 @@ function renderChart(): void {
     return
   }
 
+  const lineColor = activeTab.value === 'value' ? '#56d5ff' : '#4ade80'
+  const areaColorStart = activeTab.value === 'value' ? 'rgba(86, 213, 255, 0.26)' : 'rgba(74, 222, 128, 0.26)'
+  const areaColorEnd = activeTab.value === 'value' ? 'rgba(86, 213, 255, 0.02)' : 'rgba(74, 222, 128, 0.02)'
+
   const option: CurveChartOption = {
     animationDuration: 700,
     animationEasing: 'cubicOut',
     backgroundColor: 'transparent',
     grid: {
-      top: 72,
-      right: 72,
-      bottom: 86,
-      left: 28,
-    },
-    legend: {
-      show: false,
+      top: 20,
+      right: 20,
+      bottom: 30,
+      left: 20,
     },
     tooltip: {
       trigger: 'axis',
@@ -160,81 +209,33 @@ function renderChart(): void {
       },
       formatter(params: unknown) {
         const entries = Array.isArray(params) ? params : [params]
-        const first = entries[0] as { axisValueLabel?: string } | undefined
-        const lines = [`<div style="margin-bottom:8px;color:#9aa9c8">${first?.axisValueLabel ?? '--'}</div>`]
+        const first = entries[0] as { axisValueLabel?: string; value?: [string, number] } | undefined
+        const value = first?.value?.[1]
+        const formattedValue = value !== undefined ? formatDisplayValue(value) : '--'
 
-        entries.forEach((entry) => {
-          const point = entry as {
-            seriesName: string
-            color: string
-            value: [string, number]
-          }
-
-          lines.push(
-            `<div style="display:flex;justify-content:space-between;gap:24px;min-width:220px">` +
-              `<span style="display:inline-flex;align-items:center;gap:8px">` +
-              `<span style="width:8px;height:8px;border-radius:999px;background:${point.color}"></span>` +
-              `${point.seriesName}</span>` +
-              `<strong style="font-weight:600">${props.formatNumber(point.value[1], 2)}</strong>` +
-            `</div>`,
-          )
-        })
-
-        return lines.join('')
+        return `<div style="margin-bottom:4px;color:#9aa8c8">${first?.axisValueLabel ?? '--'}</div>` +
+               `<div style="font-weight:600;font-size:15px;color:#fff">${formattedValue}</div>`
       },
     },
     xAxis: {
       type: 'time',
       axisLine: {
-        lineStyle: {
-          color: 'rgba(129, 160, 207, 0.16)',
-        },
+        show: false,
       },
       axisTick: {
         show: false,
       },
       axisLabel: {
-          color: '#6d7d9d',
-          margin: 16,
-        formatter(value: number) {
-          return format.formatTime('yyyy-MM', value)
-        },
+        show: false,
       },
       splitLine: {
         show: false,
       },
     },
-    yAxis: [
-      {
-        type: 'value',
-        position: 'right',
-        name: '资产',
-        nameLocation: 'end',
-        nameTextStyle: {
-          color: '#6d7d9d',
-          padding: [0, 0, 8, 0],
-        },
-        axisLabel: {
-          color: '#6d7d9d',
-          formatter(value: number) {
-            return formatAxisValue(value)
-          },
-        },
-        splitNumber: 4,
-        axisLine: {
-          show: false,
-        },
-        axisTick: {
-          show: false,
-        },
-        splitLine: {
-          lineStyle: {
-            color: 'rgba(129, 160, 207, 0.11)',
-            type: 'dashed',
-          },
-        },
-      },
-    ],
+    yAxis: {
+      type: 'value',
+      show: false,
+    },
     dataZoom: [
       {
         type: 'inside',
@@ -242,108 +243,26 @@ function renderChart(): void {
         filterMode: 'none',
         zoomOnMouseWheel: 'ctrl',
       },
-      {
-        type: 'slider',
-        xAxisIndex: 0,
-        height: 22,
-        bottom: 24,
-        borderColor: 'rgba(129, 160, 207, 0.08)',
-        backgroundColor: 'rgba(9, 16, 29, 0.72)',
-        fillerColor: 'rgba(62, 169, 255, 0.18)',
-        moveHandleStyle: {
-          color: '#56d5ff',
-          opacity: 0.9,
-        },
-        handleSize: '88%',
-        handleStyle: {
-          color: '#13284a',
-          borderColor: '#56d5ff',
-          borderWidth: 1,
-        },
-        textStyle: {
-          color: '#6d7d9d',
-        },
-      },
     ],
     series: [
       {
-        name: '账户权益',
+        name: activeTab.value === 'value' ? '账户净值' : '收益率',
         type: 'line',
-        yAxisIndex: 0,
-        smooth: 0.18,
-        showSymbol: activeSeriesKey.value === 'total_equity',
-        symbol: 'circle',
-        symbolSize: 7,
+        smooth: 0.25,
+        showSymbol: false,
         sampling: 'lttb',
-        data: buildSeriesData('total_equity'),
-        lineStyle: seriesLineStyle('total_equity', 3, '#56d5ff'),
+        data: buildChartData(),
+        lineStyle: {
+          width: 2.5,
+          color: lineColor,
+        },
         areaStyle: {
           color: new graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: `rgba(86, 213, 255, ${seriesAreaOpacity('total_equity', 0.26)})` },
-            { offset: 1, color: `rgba(86, 213, 255, ${seriesAreaOpacity('total_equity', 0.02)})` },
+            { offset: 0, color: areaColorStart },
+            { offset: 1, color: areaColorEnd },
           ]),
         },
-        z: isSeriesActive('total_equity') ? 6 : 2,
-        emphasis: {
-          focus: 'series',
-        },
-      },
-      {
-        name: '净收益',
-        type: 'line',
-        yAxisIndex: 0,
-        smooth: 0.22,
-        showSymbol: activeSeriesKey.value === 'total_pnl',
-        symbol: 'circle',
-        symbolSize: 6,
-        sampling: 'lttb',
-        data: buildSeriesData('total_pnl'),
-        lineStyle: seriesLineStyle('total_pnl', 2.5, '#b7e11d'),
-        areaStyle: {
-          color: new graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: `rgba(183, 225, 29, ${seriesAreaOpacity('total_pnl', 0.18)})` },
-            { offset: 1, color: `rgba(183, 225, 29, ${seriesAreaOpacity('total_pnl', 0.01)})` },
-          ]),
-        },
-        z: isSeriesActive('total_pnl') ? 6 : 3,
-        emphasis: {
-          focus: 'series',
-        },
-      },
-      {
-        name: '净成本',
-        type: 'line',
-        yAxisIndex: 0,
-        step: 'end',
-        showSymbol: activeSeriesKey.value === 'net_cost',
-        data: buildSeriesData('net_cost'),
-        lineStyle: seriesLineStyle('net_cost', 2.5, '#ffb454'),
-        z: isSeriesActive('net_cost') ? 6 : 1,
-        emphasis: {
-          focus: 'series',
-        },
-      },
-      {
-        name: '已实现盈亏',
-        type: 'line',
-        yAxisIndex: 0,
-        smooth: 0.16,
-        showSymbol: activeSeriesKey.value === 'realized_pnl',
-        symbol: 'circle',
-        symbolSize: 6,
-        sampling: 'lttb',
-        data: buildSeriesData('realized_pnl'),
-        lineStyle: seriesLineStyle('realized_pnl', 2.4, '#8b7cff'),
-        areaStyle: {
-          color: new graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: `rgba(139, 124, 255, ${seriesAreaOpacity('realized_pnl', 0.14)})` },
-            { offset: 1, color: `rgba(139, 124, 255, ${seriesAreaOpacity('realized_pnl', 0.01)})` },
-          ]),
-        },
-        z: isSeriesActive('realized_pnl') ? 6 : 2,
-        emphasis: {
-          focus: 'series',
-        },
+        z: 6,
       },
     ],
   }
@@ -377,7 +296,7 @@ onMounted(() => {
 })
 
 watch(
-  () => [props.items, activeSeriesKey.value],
+  () => [displayData.value, activeTab.value],
   () => {
     renderChart()
   },
@@ -394,45 +313,93 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <Card class="surface-panel curve-panel">
+  <Card class="surface-panel ibkr-curve-panel">
     <template #content>
-      <div class="surface-panel__content">
-        <div class="curve-panel__header">
-          <div>
-            <p class="eyebrow">Curves</p>
-            <h2 class="panel-title curve-panel__title">账户权益 / 净收益 / 净成本 / 已实现盈亏</h2>
-            <p class="panel-subtitle curve-panel__subtitle">
-              这里的净收益按账户权益减累计净投入计算；已实现盈亏曲线按历史交易记录累计推导，和交易页口径一致。
-            </p>
+      <div class="ibkr-curve-container">
+        <div class="curve-header">
+          <div class="tab-switcher">
+            <button
+              type="button"
+              class="tab-button"
+              :class="{ 'tab-button--active': activeTab === 'value' }"
+              @click="activeTab = 'value'"
+            >
+              价值
+            </button>
+            <button
+              type="button"
+              class="tab-button"
+              :class="{ 'tab-button--active': activeTab === 'performance' }"
+              @click="activeTab = 'performance'"
+            >
+              业绩
+            </button>
           </div>
-          <div class="curve-panel__tags">
-            <Tag class="p-tag p-tag--accent" :value="historyTag" />
-            <Tag class="p-tag" :value="pointCountTag" />
-            <Tag class="p-tag" value="按住 Ctrl + 滚轮缩放" />
+          <div class="account-info">
+            账户{{ activeTab === 'value' ? '净值' : '收益率' }} (DEMO) 截止 {{ latestPoint?.report_date ?? '--' }}
           </div>
         </div>
 
-        <div v-if="items.length === 0" class="empty-state">暂无曲线数据</div>
+        <div class="currency-switcher">
+          <button
+            type="button"
+            class="currency-btn"
+            :class="{ 'currency-btn--active': currency === 'CNH' }"
+            @click="currency = 'CNH'"
+          >
+            CNH
+          </button>
+          <button
+            type="button"
+            class="currency-btn"
+            :class="{ 'currency-btn--active': currency === 'USD' }"
+            @click="currency = 'USD'"
+          >
+            USD
+          </button>
+        </div>
 
-        <div v-else class="curve-panel__body">
-          <div class="curve-series-switcher" aria-label="Curve focus toggles">
-            <button
-              v-for="item in seriesControls"
-              :key="item.key"
-              type="button"
-              class="curve-series-button"
-              :class="{ 'curve-series-button--active': isSeriesActive(item.key), 'curve-series-button--focused': activeSeriesKey === item.key }"
-              @click="toggleSeriesFocus(item.key)"
-            >
-              <span class="curve-series-button__line" :style="{ background: item.color }"></span>
-              <span class="curve-series-button__text">
-                <strong>{{ item.label }}</strong>
-                <small>{{ item.helper }}</small>
-              </span>
-            </button>
+        <div class="value-display">
+          <div class="main-value" :class="{ 'text-positive': isPositive(currentValue) === true, 'text-negative': isPositive(currentValue) === false }">
+            {{ formatDisplayValue(currentValue) }}
           </div>
+          <div v-if="deltaValue !== null" class="delta-info">
+            <span class="delta-value" :class="{ 'text-positive': isPositive(deltaValue) === true, 'text-negative': isPositive(deltaValue) === false }">
+              {{ formatDeltaValue(deltaValue) }}
+            </span>
+            <span v-if="deltaPercent !== null" class="delta-percent" :class="{ 'text-positive': isPositive(deltaPercent) === true, 'text-negative': isPositive(deltaPercent) === false }">
+              {{ formatDeltaValue(deltaPercent) }}
+            </span>
+            <span class="date-range">{{ dateRangeText }}</span>
+          </div>
+        </div>
 
-          <div ref="chartRef" class="curve-chart" aria-label="Portfolio curves" />
+        <div ref="chartRef" class="curve-chart-area" />
+
+        <div class="time-range-selector">
+          <button
+            v-for="range in timeRanges"
+            :key="range.key"
+            type="button"
+            class="range-button"
+            :class="{ 'range-button--active': selectedRange === range.key }"
+            @click="selectRange(range.key)"
+          >
+            {{ range.label }}
+          </button>
+          <input
+            v-if="selectedRange === 'custom'"
+            v-model="customStartDate"
+            type="date"
+            class="date-input"
+          />
+          <span v-if="selectedRange === 'custom'" class="date-separator">~</span>
+          <input
+            v-if="selectedRange === 'custom'"
+            v-model="customEndDate"
+            type="date"
+            class="date-input"
+          />
         </div>
       </div>
     </template>
@@ -440,150 +407,214 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.curve-panel__header {
+.ibkr-curve-panel {
+  background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
+  border: 1px solid rgba(71, 85, 105, 0.2);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.ibkr-curve-container {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.curve-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--space-4);
-  margin-bottom: var(--space-4);
+  align-items: center;
 }
 
-.curve-panel__title {
-  font-size: 1.45rem;
-}
-
-.curve-panel__subtitle {
-  max-width: 52rem;
-}
-
-.curve-panel__tags {
+.tab-switcher {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  gap: 4px;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(71, 85, 105, 0.2);
 }
 
-.curve-panel__body {
-  display: grid;
-  gap: var(--space-4);
+.tab-button {
+  padding: 8px 24px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms ease;
 }
 
-.curve-series-switcher {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+.tab-button:hover {
+  color: #cbd5e1;
 }
 
-.curve-series-button {
+.tab-button--active {
+  background: rgba(148, 163, 184, 0.12);
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+.account-info {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.currency-switcher {
+  display: flex;
+  gap: 6px;
+}
+
+.currency-btn {
+  padding: 6px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  background: transparent;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.currency-btn:hover {
+  border-color: rgba(148, 163, 184, 0.4);
+  color: #cbd5e1;
+}
+
+.currency-btn--active {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.5);
+  color: #f1f5f9;
+}
+
+.value-display {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.main-value {
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #f1f5f9;
+  line-height: 1.1;
+}
+
+.delta-info {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: 16px;
-  border: 1px solid rgba(129, 160, 207, 0.12);
-  background: rgba(15, 26, 45, 0.72);
-  color: var(--color-text-primary);
-  cursor: pointer;
-  transition:
-    border-color 160ms ease,
-    transform 160ms ease,
-    background-color 160ms ease,
-    opacity 160ms ease,
-    box-shadow 160ms ease;
+  gap: 12px;
+  font-size: 15px;
 }
 
-.curve-series-button:hover {
-  transform: translateY(-1px);
-  border-color: rgba(86, 213, 255, 0.22);
+.delta-value,
+.delta-percent {
+  font-weight: 600;
 }
 
-.curve-series-button--active {
-  opacity: 1;
+.date-range {
+  color: #64748b;
+  font-weight: 400;
 }
 
-.curve-series-button:not(.curve-series-button--active) {
-  opacity: 0.56;
+.text-positive {
+  color: #4ade80;
 }
 
-.curve-series-button--focused {
-  border-color: rgba(86, 213, 255, 0.32);
-  background: rgba(17, 31, 56, 0.92);
-  box-shadow: 0 10px 24px rgba(2, 10, 24, 0.22);
+.text-negative {
+  color: #f87171;
 }
 
-.curve-series-button__line {
-  width: 32px;
-  height: 5px;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  box-shadow: 0 0 18px rgba(255, 255, 255, 0.08);
-}
-
-.curve-series-button__text {
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.curve-series-button__text strong {
-  font-size: 0.92rem;
-  line-height: 1;
-}
-
-.curve-series-button__text small {
-  font-size: 0.82rem;
-  line-height: 1.05;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.curve-series-button__text {
-  display: grid;
-  gap: 4px;
-  justify-items: start;
-  text-align: left;
-}
-
-.curve-series-button__text strong {
-  font-size: 1.3rem;
-  letter-spacing: -0.03em;
-}
-
-.curve-series-button__text small {
-  color: var(--color-text-secondary);
-  font-size: 0.86rem;
-}
-
-.curve-chart {
+.curve-chart-area {
   width: 100%;
-  height: 620px;
-  border-radius: 24px;
-  border: 1px solid rgba(129, 160, 207, 0.1);
-  background:
-    radial-gradient(circle at top left, rgba(86, 213, 255, 0.08), transparent 22%),
-    linear-gradient(180deg, rgba(16, 30, 53, 0.76), rgba(8, 14, 28, 0.92)),
-    rgba(8, 14, 28, 0.94);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  height: 320px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.4) 0%, rgba(2, 6, 23, 0.6) 100%);
+  border: 1px solid rgba(71, 85, 105, 0.15);
 }
 
-@media (max-width: 1080px) {
-  .curve-panel__header {
-    flex-direction: column;
-  }
+.time-range-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 
-  .curve-panel__tags {
-    justify-content: flex-start;
-  }
+.range-button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(71, 85, 105, 0.25);
+  background: transparent;
+  color: #94a3b8;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 200ms ease;
+  white-space: nowrap;
+}
 
-  .curve-series-switcher {
-    grid-template-columns: 1fr;
-  }
+.range-button:hover {
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #cbd5e1;
+}
+
+.range-button--active {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.45);
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+.date-input {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  background: rgba(15, 23, 42, 0.6);
+  color: #e2e8f0;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 200ms ease;
+}
+
+.date-input:focus {
+  border-color: rgba(86, 213, 255, 0.5);
+}
+
+.date-separator {
+  color: #64748b;
+  font-size: 13px;
 }
 
 @media (max-width: 720px) {
-  .curve-chart {
-    height: 480px;
+  .ibkr-curve-container {
+    padding: 16px;
+  }
+
+  .curve-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .main-value {
+    font-size: 32px;
+  }
+
+  .curve-chart-area {
+    height: 240px;
+  }
+
+  .time-range-selector {
+    gap: 6px;
+  }
+
+  .range-button {
+    padding: 6px 12px;
+    font-size: 12px;
   }
 }
 </style>

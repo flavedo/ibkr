@@ -123,9 +123,18 @@ const statCards = computed(() => {
       icon: 'pi pi-calendar',
       tone: metricTone(overview.value.ytd_twr, 'accent'),
     },
-    { title: '年内分红', value: formatNumber(overview.value.crtt_dividends_ytd), icon: 'pi pi-briefcase', tone: 'neutral' as const },
-    { title: '年内利息', value: formatNumber(overview.value.crtt_broker_interest_ytd), icon: 'pi pi-chart-line', tone: 'neutral' as const },
-    { title: '年内佣金', value: formatNumber(overview.value.crtt_commissions_ytd), icon: 'pi pi-minus-circle', tone: 'negative' as const },
+    { 
+      title: '年内分红', 
+      value: formatNumber(overview.value.crtt_dividends_ytd), 
+      icon: 'pi pi-briefcase', 
+      tone: 'neutral' as const 
+    },
+    { 
+      title: '年内佣金', 
+      value: formatNumber(overview.value.crtt_commissions_ytd), 
+      icon: 'pi pi-minus-circle',
+       tone: 'negative' as const 
+    },
   ]
 })
 
@@ -202,10 +211,12 @@ onUnmounted(() => {
 
 <style scoped>
 .dashboard-metrics-panel {
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 .dashboard-metrics-grid {
-  margin-top: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
 }
 </style>
