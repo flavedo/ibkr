@@ -309,14 +309,14 @@ function onRowClick(event: { data: PositionItem }): void {
 }
 
 .position-datatable :deep(.p-datatable-thead > tr > th) {
-  padding: 14px 12px;
+  padding: 16px 16px;
   font-size: 0.85rem;
   letter-spacing: 0.02em;
   border-bottom: 2px solid rgba(86, 213, 255, 0.15);
 }
 
 .position-datatable :deep(.p-datatable-tbody > tr > td) {
-  padding: 16px 12px;
+  padding: 18px 16px;
   font-size: 0.92rem;
   vertical-align: middle;
 }

@@ -153,10 +153,14 @@ onMounted(() => {
     <ErrorBlock v-else-if="errorMessage" :message="errorMessage" />
 
     <template v-else>
-      <section class="stats-grid stats-grid--summary">
-        <StatCard title="流水笔数" :value="String(cashFlowSummary?.record_count ?? 0)" icon="pi pi-list" tone="accent" />
-        <StatCard title="入金笔数" :value="String(cashFlowSummary?.deposit_count ?? 0)" icon="pi pi-arrow-down-left" tone="positive" />
-        <StatCard title="出金笔数" :value="String(cashFlowSummary?.withdrawal_count ?? 0)" icon="pi pi-arrow-up-right" tone="negative" />
+      <section class="surface-panel">
+        <div class="surface-panel__content">
+          <section class="stats-grid stats-grid--summary">
+            <StatCard title="流水笔数" :value="String(cashFlowSummary?.record_count ?? 0)" icon="pi pi-list" tone="accent" />
+            <StatCard title="入金笔数" :value="String(cashFlowSummary?.deposit_count ?? 0)" icon="pi pi-arrow-down-left" tone="positive" />
+            <StatCard title="出金笔数" :value="String(cashFlowSummary?.withdrawal_count ?? 0)" icon="pi pi-arrow-up-right" tone="negative" />
+          </section>
+        </div>
       </section>
 
       <section class="surface-panel">

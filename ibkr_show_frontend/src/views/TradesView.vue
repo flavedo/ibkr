@@ -164,21 +164,25 @@ onMounted(() => {
     <ErrorBlock v-else-if="errorMessage" :message="errorMessage" />
 
     <template v-else>
-      <section class="stats-grid stats-grid--summary">
-        <StatCard title="成交笔数" :value="String(tradeSummary.trade_count)" icon="pi pi-list" tone="accent" />
-        <StatCard title="买入笔数" :value="String(tradeSummary.buy_count)" icon="pi pi-arrow-up" tone="positive" />
-        <StatCard title="卖出笔数" :value="String(tradeSummary.sell_count)" icon="pi pi-arrow-down" tone="negative" />
-        <StatCard title="总佣金" :value="formatNumber(tradeSummary.total_commission, 4)" icon="pi pi-minus-circle" :tone="toneByNumber(tradeSummary.total_commission)" />
-        <StatCard title="已实现盈亏" :value="formatNumber(tradeSummary.total_realized_pnl)" icon="pi pi-chart-line" :tone="toneByNumber(tradeSummary.total_realized_pnl)" />
-        <StatCard
-          v-for="item in tradeSummary.proceeds_by_currency"
-          :key="item.currency"
-          :title="`${item.currency} 成交净额`"
-          :value="formatNumber(item.amount)"
-          helper="按币种分组的 proceeds 净和"
-          icon="pi pi-chart-bar"
-          :tone="toneByNumber(item.amount)"
-        />
+      <section class="surface-panel">
+        <div class="surface-panel__content">
+          <section class="stats-grid stats-grid--summary">
+            <StatCard title="成交笔数" :value="String(tradeSummary.trade_count)" icon="pi pi-list" tone="accent" />
+            <StatCard title="买入笔数" :value="String(tradeSummary.buy_count)" icon="pi pi-arrow-up" tone="positive" />
+            <StatCard title="卖出笔数" :value="String(tradeSummary.sell_count)" icon="pi pi-arrow-down" tone="negative" />
+            <StatCard title="总佣金" :value="formatNumber(tradeSummary.total_commission, 4)" icon="pi pi-minus-circle" :tone="toneByNumber(tradeSummary.total_commission)" />
+            <StatCard title="已实现盈亏" :value="formatNumber(tradeSummary.total_realized_pnl)" icon="pi pi-chart-line" :tone="toneByNumber(tradeSummary.total_realized_pnl)" />
+            <StatCard
+              v-for="item in tradeSummary.proceeds_by_currency"
+              :key="item.currency"
+              :title="`${item.currency} 成交净额`"
+              :value="formatNumber(item.amount)"
+              helper="按币种分组的 proceeds 净和"
+              icon="pi pi-chart-bar"
+              :tone="toneByNumber(item.amount)"
+            />
+          </section>
+        </div>
       </section>
 
       <section class="surface-panel">

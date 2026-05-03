@@ -58,7 +58,7 @@ function sortIndicator(
 
 <template>
   <div class="table-shell">
-    <DataTable :value="items" class="terminal-datatable">
+    <DataTable :value="items" class="terminal-datatable" tableStyle="table-layout: fixed">
       <template #empty>
         <div class="empty-state">当前筛选条件下没有交易数据</div>
       </template>
@@ -214,7 +214,7 @@ function sortIndicator(
 }
 
 .terminal-datatable :deep(.p-datatable-thead > tr > th) {
-  padding: 13px 10px;
+  padding: 16px 14px;
   font-size: 0.84rem;
   letter-spacing: 0.02em;
   border-bottom: 2px solid rgba(86, 213, 255, 0.15);
@@ -222,7 +222,7 @@ function sortIndicator(
 }
 
 .terminal-datatable :deep(.p-datatable-tbody > tr > td) {
-  padding: 14px 10px;
+  padding: 18px 14px;
   font-size: 0.88rem;
   vertical-align: middle;
   border-bottom: 1px solid rgba(129, 160, 207, 0.06);

@@ -158,18 +158,22 @@ onMounted(() => {
     <ErrorBlock v-else-if="errorMessage" :message="errorMessage" />
 
     <template v-else>
-      <section class="stats-grid stats-grid--summary">
-        <StatCard title="分红笔数" :value="String(dividendSummary.record_count)" icon="pi pi-list" tone="accent" />
-        <StatCard title="分红总额" :value="formatNumber(dividendSummary.total_amount)" icon="pi pi-dollar" :tone="toneByNumber(dividendSummary.total_amount)" />
-        <StatCard title="Gross总额" :value="formatNumber(dividendSummary.total_gross_amount)" icon="pi pi-dollar" :tone="toneByNumber(dividendSummary.total_gross_amount)" />
-        <StatCard
-          v-for="item in dividendSummary.by_symbol"
-          :key="item.symbol"
-          :title="`${item.symbol} 分红`"
-          :value="formatNumber(item.amount)"
-          icon="pi pi-chart-bar"
-          :tone="toneByNumber(item.amount)"
-        />
+      <section class="surface-panel">
+        <div class="surface-panel__content">
+          <section class="stats-grid stats-grid--summary">
+            <StatCard title="分红笔数" :value="String(dividendSummary.record_count)" icon="pi pi-list" tone="accent" />
+            <StatCard title="分红总额" :value="formatNumber(dividendSummary.total_amount)" icon="pi pi-dollar" :tone="toneByNumber(dividendSummary.total_amount)" />
+            <StatCard title="Gross总额" :value="formatNumber(dividendSummary.total_gross_amount)" icon="pi pi-dollar" :tone="toneByNumber(dividendSummary.total_gross_amount)" />
+            <StatCard
+              v-for="item in dividendSummary.by_symbol"
+              :key="item.symbol"
+              :title="`${item.symbol} 分红`"
+              :value="formatNumber(item.amount)"
+              icon="pi pi-chart-bar"
+              :tone="toneByNumber(item.amount)"
+            />
+          </section>
+        </div>
       </section>
 
       <section class="surface-panel">
@@ -215,6 +219,15 @@ onMounted(() => {
           <template v-if="dividendItems.length > 0">
             <div class="table-wrapper">
               <table class="data-table dividend-table">
+                <colgroup>
+                  <col style="width: 15%" />
+                  <col style="width: 10%" />
+                  <col style="width: 25%" />
+                  <col style="width: 12%" />
+                  <col style="width: 14%" />
+                  <col style="width: 14%" />
+                  <col style="width: 10%" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th>日期</th>
@@ -337,12 +350,13 @@ onMounted(() => {
 
 .dividend-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.88rem;
 
   th,
   td {
-    padding: 13px 12px;
+    padding: 16px 14px;
     text-align: left;
     vertical-align: middle;
   }
@@ -369,9 +383,7 @@ onMounted(() => {
   .sortable {
     cursor: pointer;
     user-select: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+    white-space: nowrap;
 
     &:hover {
       color: #56d5ff;
