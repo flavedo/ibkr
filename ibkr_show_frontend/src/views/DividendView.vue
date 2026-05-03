@@ -166,18 +166,21 @@ onMounted(() => {
         <form class="trade-filters" @submit.prevent="applyFilters">
           <label class="field-stack">
             <span class="field-stack__label">开始日期</span>
-            <InputText v-model="state.start_date" type="date" />
+            <InputText v-model="state.start_date" type="date" class="filter-input" />
           </label>
           <label class="field-stack">
             <span class="field-stack__label">结束日期</span>
-            <InputText v-model="state.end_date" type="date" />
+            <InputText v-model="state.end_date" type="date" class="filter-input" />
           </label>
           <label class="field-stack">
             <span class="field-stack__label">代码</span>
-            <InputText v-model="state.symbol" type="text" placeholder="QQQI" />
+            <InputText v-model="state.symbol" type="text" placeholder="QQQI" class="filter-input" />
           </label>
           <div class="field-stack field-stack--action">
-            <Button label="刷新分红" icon="pi pi-search" class="p-button p-button--accent" type="submit" />
+            <button type="submit" class="refresh-btn">
+              <i class="pi pi-refresh"></i>
+              刷新分红
+            </button>
           </div>
         </form>
       </div>
@@ -211,18 +214,20 @@ onMounted(() => {
           </div>
           <template v-if="dividendItems.length > 0">
             <div class="table-wrapper">
-              <table class="data-table">
+              <table class="data-table dividend-table">
                 <thead>
                   <tr>
                     <th>日期</th>
                     <th>代码</th>
                     <th>描述</th>
                     <th>数量</th>
-                    <th class="table-col--number" @click="setSort('gross_amount')" style="cursor: pointer">
-                      Gross金额 <span v-if="sortKey === 'gross_amount'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+                    <th class="sortable" @click="setSort('gross_amount')">
+                      Gross金额
+                      <span v-if="sortKey === 'gross_amount'" class="sort-indicator">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
                     </th>
-                    <th class="table-col--number" @click="setSort('amount')" style="cursor: pointer">
-                      Net金额 <span v-if="sortKey === 'amount'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+                    <th class="sortable" @click="setSort('amount')">
+                      Net金额
+                      <span v-if="sortKey === 'amount'" class="sort-indicator">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
                     </th>
                     <th>Activity</th>
                   </tr>
@@ -230,27 +235,29 @@ onMounted(() => {
                 <tbody>
                   <tr v-for="item in paginatedDividends" :key="item.transaction_id ?? ''">
                     <td>{{ formatDate(item.date_time) }}</td>
-                    <td>{{ item.symbol ?? '--' }}</td>
+                    <td><strong>{{ item.symbol ?? '--' }}</strong></td>
                     <td>{{ item.description ?? '--' }}</td>
                     <td>{{ item.activity_description ?? '--' }}</td>
-                    <td class="table-col--number" :class="toneByNumber(item.gross_amount)">
+                    <td class="number-cell" :class="toneByNumber(item.gross_amount)">
                       {{ formatNumber(item.gross_amount) }}
                     </td>
-                    <td class="table-col--number" :class="toneByNumber(item.amount)">
+                    <td class="number-cell" :class="toneByNumber(item.amount)">
                       {{ formatNumber(item.amount) }}
                     </td>
-                    <td>{{ item.activity_code ?? '--' }}</td>
+                    <td><span class="tag-badge">{{ item.activity_code ?? '--' }}</span></td>
                   </tr>
                 </tbody>
               </table>
             </div>
-            <Paginator
-              :rows="state.page_size"
-              :totalRecords="sortedDividends.length"
-              :first="(state.page - 1) * state.page_size"
-              :rowsPerPageOptions="[20, 50, 100]"
-              @page="onPageChange"
-            />
+            <div class="trade-paginator-wrapper">
+              <Paginator
+                :rows="state.page_size"
+                :totalRecords="sortedDividends.length"
+                :first="(state.page - 1) * state.page_size"
+                :rowsPerPageOptions="[20, 50, 100]"
+                @page="onPageChange"
+              />
+            </div>
           </template>
           <div v-else class="empty-state">暂无分红数据</div>
         </div>
@@ -267,47 +274,133 @@ onMounted(() => {
   align-items: end;
 }
 
-@media (max-width: 1200px) {
-  .trade-filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+.filter-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  background: rgba(15, 23, 42, 0.6);
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: all 200ms ease;
+
+  &:focus {
+    border-color: rgba(86, 213, 255, 0.5);
+    box-shadow: 0 0 0 3px rgba(86, 213, 255, 0.1);
+  }
+
+  &::placeholder {
+    color: #64748b;
+  }
+
+  &::-webkit-calendar-picker-indicator {
+    filter: invert(1) opacity(0.6);
+    cursor: pointer;
   }
 }
 
-@media (max-width: 680px) {
-  .trade-filters {
-    grid-template-columns: 1fr;
+.refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(86, 213, 255, 0.3);
+  background: linear-gradient(135deg, rgba(60, 146, 255, 0.15), rgba(25, 92, 182, 0.2));
+  color: #56d5ff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: linear-gradient(135deg, rgba(60, 146, 255, 0.25), rgba(25, 92, 182, 0.35));
+    border-color: rgba(86, 213, 255, 0.5);
+    box-shadow: 0 4px 16px rgba(86, 213, 255, 0.2);
+    transform: translateY(-1px);
+  }
+
+  i {
+    font-size: 0.85rem;
   }
 }
 
 .table-wrapper {
   overflow-x: auto;
+  border-radius: 16px;
+  border: 1px solid rgba(129, 160, 207, 0.08);
 }
 
-.data-table {
+.dividend-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
-}
+  font-size: 0.88rem;
 
-.data-table th,
-.data-table td {
-  padding: 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid var(--color-border);
-}
+  th,
+  td {
+    padding: 13px 12px;
+    text-align: left;
+    vertical-align: middle;
+  }
 
-.data-table th {
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  background: var(--color-surface-raised);
-}
+  thead th {
+    font-weight: 700;
+    font-size: 0.84rem;
+    letter-spacing: 0.02em;
+    color: #94a3b8;
+    background: rgba(15, 23, 42, 0.4);
+    border-bottom: 2px solid rgba(86, 213, 255, 0.15);
+    white-space: nowrap;
+  }
 
-.data-table tbody tr:hover {
-  background: var(--color-surface-hover);
-}
+  tbody tr {
+    transition: all 200ms ease;
+    border-bottom: 1px solid rgba(129, 160, 207, 0.06);
 
-.table-col--number {
-  text-align: right;
+    &:hover td {
+      background: rgba(86, 213, 255, 0.04);
+    }
+  }
+
+  .sortable {
+    cursor: pointer;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    &:hover {
+      color: #56d5ff;
+    }
+  }
+
+  .sort-indicator {
+    color: #56d5ff;
+    font-weight: 800;
+    font-size: 0.9rem;
+  }
+
+  .number-cell {
+    text-align: right;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tag-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(86, 213, 255, 0.1);
+    border: 1px solid rgba(86, 213, 255, 0.25);
+    color: #56d5ff;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
 }
 
 .positive {
@@ -320,5 +413,92 @@ onMounted(() => {
 
 .neutral {
   color: var(--color-text-secondary);
+}
+
+.trade-paginator-wrapper {
+  margin-top: 16px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(129, 160, 207, 0.12);
+
+  :deep(.p-paginator) {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    padding: 0;
+  }
+
+  :deep(.p-paginator-pages) {
+    display: flex;
+    gap: 6px;
+  }
+
+  :deep(.p-paginator-page),
+  :deep(.p-paginator-prev),
+  :deep(.p-paginator-next),
+  :deep(.p-paginator-first),
+  :deep(.p-paginator-last) {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(71, 85, 105, 0.3);
+    background: rgba(15, 23, 42, 0.6);
+    color: #94a3b8;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 200ms ease;
+
+    &:hover:not(.p-disabled) {
+      border-color: rgba(86, 213, 255, 0.4);
+      background: rgba(25, 45, 75, 0.7);
+      color: #cbd5e1;
+      transform: translateY(-1px);
+    }
+  }
+
+  :deep(.p-paginator-page.p-paginator-page-selected) {
+    border-color: rgba(86, 213, 255, 0.5);
+    background: linear-gradient(135deg, rgba(60, 146, 255, 0.2), rgba(25, 92, 182, 0.3));
+    color: #56d5ff;
+    font-weight: 700;
+    box-shadow: 0 0 12px rgba(86, 213, 255, 0.15);
+  }
+
+  :deep(.p-paginator-rpp-dropdown) {
+    min-width: auto;
+    height: 36px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(71, 85, 105, 0.3);
+    background: rgba(15, 23, 42, 0.6);
+    color: #94a3b8;
+    font-size: 0.85rem;
+  }
+
+  :deep(.p-paginator-current) {
+    color: #64748b;
+    font-size: 0.84rem;
+    margin: 0 12px;
+  }
+
+  :deep(.p-disabled) {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+@media (max-width: 1200px) {
+  .trade-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .trade-filters {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

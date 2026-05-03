@@ -150,4 +150,64 @@ function sortIndicator(
   color: var(--color-accent-strong);
   font-size: 0.88rem;
 }
+
+.terminal-datatable :deep(.table-col--datetime) {
+  width: 16%;
+}
+
+.terminal-datatable :deep(.table-col--asset) {
+  width: 8%;
+}
+
+.terminal-datatable :deep(.table-col--side) {
+  width: 9%;
+}
+
+.terminal-datatable :deep(.table-col--value) {
+  width: 14%;
+}
+
+.terminal-datatable :deep(.table-col--price) {
+  width: 12%;
+}
+
+.terminal-datatable :deep(.table-col--symbol) {
+  width: 25%;
+}
+
+.terminal-datatable :deep(.table-col--exchange) {
+  width: 16%;
+}
+
+.terminal-datatable :deep(.table-symbol__desc) {
+  white-space: nowrap;
+}
+
+.terminal-datatable :deep(.p-datatable-thead > tr > th) {
+  padding: 13px 10px;
+  font-size: 0.84rem;
+  letter-spacing: 0.02em;
+  border-bottom: 2px solid rgba(86, 213, 255, 0.15);
+  white-space: nowrap;
+}
+
+.terminal-datatable :deep(.p-datatable-tbody > tr > td) {
+  padding: 14px 10px;
+  font-size: 0.88rem;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(129, 160, 207, 0.06);
+}
+
+.terminal-datatable :deep(.p-datatable-tbody > tr) {
+  transition: all 200ms ease;
+
+  &:hover > td {
+    background: rgba(86, 213, 255, 0.04);
+  }
+}
+
+.table-shell {
+  border-radius: 16px;
+  overflow: hidden;
+}
 </style>
