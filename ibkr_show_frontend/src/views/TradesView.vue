@@ -172,15 +172,15 @@ onMounted(() => {
         <form class="trade-filters" @submit.prevent="applyFilters">
           <label class="field-stack">
             <span class="field-stack__label">开始日期</span>
-            <InputText v-model="state.start_date" type="date" />
+            <InputText v-model="state.start_date" type="date" class="filter-input" />
           </label>
           <label class="field-stack">
             <span class="field-stack__label">结束日期</span>
-            <InputText v-model="state.end_date" type="date" />
+            <InputText v-model="state.end_date" type="date" class="filter-input" />
           </label>
           <label class="field-stack">
             <span class="field-stack__label">代码</span>
-            <InputText v-model="state.symbol" type="text" placeholder="AAPL" />
+            <InputText v-model="state.symbol" type="text" placeholder="AAPL" class="filter-input" />
           </label>
           <div class="field-stack">
             <div class="trade-side-toggle__label-row">
@@ -188,24 +188,29 @@ onMounted(() => {
               <span class="trade-side-toggle__helper">默认全部</span>
             </div>
             <div class="trade-side-toggle">
-              <Button
+              <button
                 type="button"
-                label="买入"
-                class="trade-side-toggle__button"
-                :class="{ 'is-active': state.buy_sell === 'BUY' }"
+                class="side-btn"
+                :class="{ 'side-btn--active': state.buy_sell === 'BUY' }"
                 @click="setSide('BUY')"
-              />
-              <Button
+              >
+                买入
+              </button>
+              <button
                 type="button"
-                label="卖出"
-                class="trade-side-toggle__button"
-                :class="{ 'is-active': state.buy_sell === 'SELL' }"
+                class="side-btn"
+                :class="{ 'side-btn--active': state.buy_sell === 'SELL' }"
                 @click="setSide('SELL')"
-              />
+              >
+                卖出
+              </button>
             </div>
           </div>
           <div class="field-stack field-stack--action">
-            <Button label="刷新交易" icon="pi pi-search" class="p-button p-button--accent" type="submit" />
+            <button type="submit" class="refresh-btn">
+              <i class="pi pi-refresh"></i>
+              刷新交易
+            </button>
           </div>
         </form>
       </div>
@@ -248,13 +253,15 @@ onMounted(() => {
               :sort-order="sortOrder"
               :on-sort="setSort"
             />
-            <Paginator
-              :rows="state.page_size"
-              :totalRecords="sortedTrades.length"
-              :first="(state.page - 1) * state.page_size"
-              :rowsPerPageOptions="[20, 50, 100]"
-              @page="onPageChange"
-            />
+            <div class="trade-paginator-wrapper">
+              <Paginator
+                :rows="state.page_size"
+                :totalRecords="sortedTrades.length"
+                :first="(state.page - 1) * state.page_size"
+                :rowsPerPageOptions="[20, 50, 100]"
+                @page="onPageChange"
+              />
+            </div>
           </template>
           <div v-else class="empty-state">暂无交易数据</div>
         </div>
@@ -271,9 +278,99 @@ onMounted(() => {
   align-items: end;
 }
 
+.filter-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  background: rgba(15, 23, 42, 0.6);
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: all 200ms ease;
+
+  &:focus {
+    border-color: rgba(86, 213, 255, 0.5);
+    box-shadow: 0 0 0 3px rgba(86, 213, 255, 0.1);
+  }
+
+  &::placeholder {
+    color: #64748b;
+  }
+
+  &::-webkit-calendar-picker-indicator {
+    filter: invert(1) opacity(0.6);
+    cursor: pointer;
+  }
+}
+
 .trade-side-toggle {
   display: flex;
-  gap: 10px;
+  gap: 8px;
+}
+
+.side-btn {
+  flex: 1;
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(71, 85, 105, 0.35);
+  background: rgba(15, 23, 42, 0.6);
+  color: #94a3b8;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms ease;
+
+  &:hover {
+    border-color: rgba(148, 163, 184, 0.45);
+    color: #cbd5e1;
+    background: rgba(25, 40, 65, 0.7);
+  }
+
+  &--active {
+    &.side-btn:nth-child(1) {
+      background: linear-gradient(135deg, rgba(52, 210, 163, 0.2), rgba(16, 95, 70, 0.3));
+      border-color: rgba(52, 210, 163, 0.4);
+      color: #34d2a3;
+      box-shadow: 0 0 12px rgba(52, 210, 163, 0.15);
+    }
+
+    &.side-btn:nth-child(2) {
+      background: linear-gradient(135deg, rgba(255, 107, 125, 0.2), rgba(120, 30, 50, 0.3));
+      border-color: rgba(255, 107, 125, 0.4);
+      color: #ff6b7d;
+      box-shadow: 0 0 12px rgba(255, 107, 125, 0.15);
+    }
+  }
+}
+
+.refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(86, 213, 255, 0.3);
+  background: linear-gradient(135deg, rgba(60, 146, 255, 0.15), rgba(25, 92, 182, 0.2));
+  color: #56d5ff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: linear-gradient(135deg, rgba(60, 146, 255, 0.25), rgba(25, 92, 182, 0.35));
+    border-color: rgba(86, 213, 255, 0.5);
+    box-shadow: 0 4px 16px rgba(86, 213, 255, 0.2);
+    transform: translateY(-1px);
+  }
+
+  i {
+    font-size: 0.85rem;
+  }
 }
 
 .trade-side-toggle__label-row {
@@ -282,19 +379,84 @@ onMounted(() => {
   gap: 8px;
 }
 
-.trade-side-toggle__button {
-  min-width: 96px;
-}
-
-.trade-side-toggle__button.is-active {
-  background: linear-gradient(135deg, rgba(60, 146, 255, 0.95), rgba(25, 92, 182, 0.95));
-  border-color: rgba(116, 194, 255, 0.75);
-  box-shadow: 0 0 0 1px rgba(116, 194, 255, 0.25) inset;
-}
-
 .trade-side-toggle__helper {
   font-size: 0.82rem;
   color: var(--color-text-secondary);
+}
+
+.trade-paginator-wrapper {
+  margin-top: 16px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(129, 160, 207, 0.12);
+
+  :deep(.p-paginator) {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    padding: 0;
+  }
+
+  :deep(.p-paginator-pages) {
+    display: flex;
+    gap: 6px;
+  }
+
+  :deep(.p-paginator-page),
+  :deep(.p-paginator-prev),
+  :deep(.p-paginator-next),
+  :deep(.p-paginator-first),
+  :deep(.p-paginator-last) {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(71, 85, 105, 0.3);
+    background: rgba(15, 23, 42, 0.6);
+    color: #94a3b8;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 200ms ease;
+
+    &:hover:not(.p-disabled) {
+      border-color: rgba(86, 213, 255, 0.4);
+      background: rgba(25, 45, 75, 0.7);
+      color: #cbd5e1;
+      transform: translateY(-1px);
+    }
+  }
+
+  :deep(.p-paginator-page.p-paginator-page-selected) {
+    border-color: rgba(86, 213, 255, 0.5);
+    background: linear-gradient(135deg, rgba(60, 146, 255, 0.2), rgba(25, 92, 182, 0.3));
+    color: #56d5ff;
+    font-weight: 700;
+    box-shadow: 0 0 12px rgba(86, 213, 255, 0.15);
+  }
+
+  :deep(.p-paginator-rpp-dropdown) {
+    min-width: auto;
+    height: 36px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(71, 85, 105, 0.3);
+    background: rgba(15, 23, 42, 0.6);
+    color: #94a3b8;
+    font-size: 0.85rem;
+  }
+
+  :deep(.p-paginator-current) {
+    color: #64748b;
+    font-size: 0.84rem;
+    margin: 0 12px;
+  }
+
+  :deep(.p-disabled) {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 }
 
 @media (max-width: 1200px) {
