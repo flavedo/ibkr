@@ -58,7 +58,7 @@ function sortIndicator(
 
 <template>
   <div class="table-shell">
-    <DataTable :value="items" class="terminal-datatable">
+    <DataTable :value="items" class="terminal-datatable" tableStyle="table-layout: fixed">
       <template #empty>
         <div class="empty-state">当前筛选条件下没有出入金记录</div>
       </template>
@@ -184,15 +184,18 @@ function sortIndicator(
 }
 
 .terminal-datatable :deep(.p-datatable-thead > tr > th) {
-  padding: 13px 10px;
+  padding: 16px 14px;
   font-size: 0.84rem;
+  font-weight: 700;
   letter-spacing: 0.02em;
+  color: #94a3b8;
+  background: rgba(15, 23, 42, 0.4);
   border-bottom: 2px solid rgba(86, 213, 255, 0.15);
   white-space: nowrap;
 }
 
 .terminal-datatable :deep(.p-datatable-tbody > tr > td) {
-  padding: 14px 10px;
+  padding: 16px 14px;
   font-size: 0.88rem;
   vertical-align: middle;
   border-bottom: 1px solid rgba(129, 160, 207, 0.06);
@@ -206,8 +209,17 @@ function sortIndicator(
   }
 }
 
+.sort-button:hover {
+  color: #56d5ff;
+}
+
+.cell-number {
+  font-variant-numeric: tabular-nums;
+}
+
 .table-shell {
   border-radius: 16px;
   overflow: hidden;
+  border: 1px solid rgba(129, 160, 207, 0.08);
 }
 </style>
