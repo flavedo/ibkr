@@ -142,9 +142,7 @@ const dateRangeText = computed(() => {
 function formatDisplayValue(value: number | null): string {
   if (value === null) return '--'
   if (activeTab.value === 'value') {
-    const converted = convertValue(value)
-    if (converted === null) return '--'
-    return `${currencySymbol()}${props.formatNumber(Math.abs(converted), 2)}`
+    return `${currencySymbol()}${props.formatNumber(value, 2)}`
   }
   return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`
 }
@@ -152,10 +150,8 @@ function formatDisplayValue(value: number | null): string {
 function formatDeltaValue(value: number | null): string {
   if (value === null) return ''
   if (activeTab.value === 'value') {
-    const converted = convertValue(value)
-    if (converted === null) return ''
-    const prefix = converted > 0 ? '+' : ''
-    return `${prefix}${currencySymbol()}${props.formatNumber(Math.abs(converted), 2)}`
+    const prefix = value > 0 ? '+' : ''
+    return `${prefix}${currencySymbol()}${props.formatNumber(Math.abs(value), 2)}`
   }
   return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`
 }

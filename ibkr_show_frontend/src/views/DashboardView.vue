@@ -38,10 +38,11 @@ function formatNumber(value: number | null, digits = 2): string {
 }
 
 function formatPercent(value: number | null): string {
-  if (value === null) {
-    return '--'
-  }
-  return `${formatNumber(value, 2)}%`
+  if (value === null) return '--'
+  return `${new Intl.NumberFormat('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)}%`
 }
 
 function formatSignedNumber(value: number | null, digits = 2): string {
