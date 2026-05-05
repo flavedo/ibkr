@@ -572,8 +572,6 @@ def _transform_stfu_dividend_rows(
         activity_code = _get_value(row, "ActivityCode")
         if activity_code not in ("DIV", "PIL", "FRTAX"):
             continue
-        if (_get_value(row, "LevelOfDetail") or "").strip().upper() != "DETAIL":
-            continue
 
         account_id = _get_value(row, "ClientAccountID", "AccountId") or "unknown"
         date_time = to_iso_datetime(_get_value(row, "Date"))
@@ -648,7 +646,7 @@ def _transform_stfu_deposit_withdrawal_rows(
         activity_code = _get_value(row, "ActivityCode")
         if activity_code not in ("DEP", "WDL"):
             continue
-        if (_get_value(row, "LevelOfDetail") or "").strip().upper() != "DETAIL":
+        if (_get_value(row, "LevelOfDetail") or "").strip().upper() != "BASECURRENCY":
             continue
 
         account_id = _get_value(row, "ClientAccountID", "AccountId") or "unknown"
