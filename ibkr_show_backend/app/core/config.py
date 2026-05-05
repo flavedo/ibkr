@@ -34,6 +34,8 @@ class Settings:
     es_cash_flow_index: str
     es_price_history_index: str
     fx_usd_cnh: float
+    app_password: str
+    jwt_secret: str
 
 
 @lru_cache
@@ -58,4 +60,6 @@ def get_settings() -> Settings:
         es_cash_flow_index=os.getenv("ES_CASH_FLOW_INDEX", "ibkr_cash_flow_records_v1"),
         es_price_history_index=os.getenv("ES_PRICE_HISTORY_INDEX", "ibkr_symbol_price_history_v1"),
         fx_usd_cnh=float(os.getenv("FX_USD_CNH", "7.25")),
+        app_password=os.getenv("APP_PASSWORD", "ibkr123456"),
+        jwt_secret=os.getenv("JWT_SECRET", "ibkr-jwt-secret-change-me"),
     )

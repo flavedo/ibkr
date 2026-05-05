@@ -4,6 +4,11 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
+      path: '/login',
+      name: 'login',
+      component: () => import('@/views/LoginView.vue'),
+    },
+    {
       path: '/',
       redirect: '/financial-calendar',
     },
@@ -43,6 +48,19 @@ const router = createRouter({
       component: () => import('@/views/EarningsSettingsView.vue'),
     },
   ],
+})
+
+const publicPaths = ['/login']
+
+router.beforeEach((to, _from, next) => {
+  const token = localStorage.getItem('auth_token')
+  if (publicPaths.includes(to.path)) {
+    next()
+  } else if (!token) {
+    next('/login')
+  } else {
+    next()
+  }
 })
 
 export default router
