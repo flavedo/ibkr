@@ -6,6 +6,7 @@ export interface EquityCurvePoint {
   realized_pnl: number | null
   daily_mtm: number | null
   daily_twr: number | null
+  cnav_twr: number | null
 }
 
 export interface EquityCurveResponse {

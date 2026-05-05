@@ -89,6 +89,7 @@ class ChartService:
                     realized_pnl=current_realized_pnl,
                     daily_mtm=daily_mtm,
                     daily_twr=daily_twr,
+                    cnav_twr=source.get("cnav_twr"),
                 )
             )
             previous_total_equity = float(total_equity) if total_equity is not None else previous_total_equity

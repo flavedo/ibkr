@@ -9,6 +9,7 @@ class EquityCurvePoint(BaseModel):
     realized_pnl: float | None = None
     daily_mtm: float | None = None
     daily_twr: float | None = None
+    cnav_twr: float | None = None
 
 
 class EquityCurveResponse(BaseModel):

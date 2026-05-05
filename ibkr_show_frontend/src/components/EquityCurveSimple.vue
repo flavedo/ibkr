@@ -35,6 +35,7 @@ const chartInstance = shallowRef<EChartsType | null>(null)
 let resizeObserver: ResizeObserver | null = null
 
 const activeTab = ref<'value' | 'performance'>('value')
+const twrMode = ref<'twr' | 'daily' | 'simple'>('daily')
 const {
   currentCurrency: currency,
   switchCurrency,
@@ -106,13 +107,33 @@ const filteredItems = computed(() => {
 const displayData = computed(() => filteredItems.value)
 
 const currentDisplayPoint = computed(() => displayData.value[displayData.value.length - 1] ?? null)
+const firstDisplayPoint = computed(() => displayData.value[0] ?? null)
 
-const cumulativeTwr = computed(() => {
+const twrModeLabel = computed(() => {
+  switch (twrMode.value) {
+    case 'twr': return '时间加权收益率'
+    case 'daily': return '自算日收益率'
+    case 'simple': return '简单收益率'
+  }
+})
+
+const performanceValue = computed(() => {
   if (!displayData.value.length) return null
+
+  if (twrMode.value === 'simple') {
+    const first = firstDisplayPoint.value
+    const last = currentDisplayPoint.value
+    if (!first || !last || first.total_equity === null || first.total_equity === 0) return null
+    if (last.total_equity === null) return null
+    return ((last.total_equity - first.total_equity) / Math.abs(first.total_equity)) * 100
+  }
+
+  const field = twrMode.value === 'twr' ? 'cnav_twr' : 'daily_twr'
   let cumulative = 1.0
   for (const item of displayData.value) {
-    if (item.daily_twr !== null && item.daily_twr !== undefined) {
-      cumulative *= 1.0 + item.daily_twr / 100.0
+    const val = item[field]
+    if (val !== null && val !== undefined) {
+      cumulative *= 1.0 + val / 100.0
     }
   }
   return (cumulative - 1.0) * 100.0
@@ -120,7 +141,7 @@ const cumulativeTwr = computed(() => {
 
 const currentValue = computed(() => {
   if (!currentDisplayPoint.value) return null
-  return activeTab.value === 'value' ? currentDisplayPoint.value.total_equity : cumulativeTwr.value
+  return activeTab.value === 'value' ? currentDisplayPoint.value.total_equity : performanceValue.value
 })
 
 const startValue = computed(() => {
@@ -182,11 +203,25 @@ function buildChartData(): Array<[string, number]> {
       return [[item.report_date, convertValue(item.total_equity) ?? item.total_equity]]
     })
   }
+
+  if (twrMode.value === 'simple') {
+    return displayData.value.map((item) => {
+      const first = displayData.value[0]
+      if (!first || first.total_equity === null || first.total_equity === 0 || item.total_equity === null) {
+        return [item.report_date, 0]
+      }
+      const val = ((item.total_equity - first.total_equity) / Math.abs(first.total_equity)) * 100
+      return [item.report_date, val]
+    })
+  }
+
+  const field = twrMode.value === 'twr' ? 'cnav_twr' : 'daily_twr'
   let cumulative = 1.0
   const result: Array<[string, number]> = []
   for (const item of displayData.value) {
-    if (item.daily_twr !== null && item.daily_twr !== undefined) {
-      cumulative *= 1.0 + item.daily_twr / 100.0
+    const val = item[field]
+    if (val !== null && val !== undefined) {
+      cumulative *= 1.0 + val / 100.0
     }
     result.push([item.report_date, (cumulative - 1.0) * 100.0])
   }
@@ -318,7 +353,7 @@ onMounted(() => {
 })
 
 watch(
-  () => [displayData.value, activeTab.value, currency.value],
+  () => [displayData.value, activeTab.value, currency.value, twrMode.value],
   () => {
     renderChart()
   },
@@ -379,6 +414,34 @@ onUnmounted(() => {
           >
             USD
           </button>
+        </div>
+
+        <div v-if="activeTab === 'performance'" class="twr-mode-switcher">
+          <button
+            type="button"
+            class="currency-btn"
+            :class="{ 'currency-btn--active': twrMode === 'twr' }"
+            @click="twrMode = 'twr'"
+          >
+            TWR
+          </button>
+          <button
+            type="button"
+            class="currency-btn"
+            :class="{ 'currency-btn--active': twrMode === 'daily' }"
+            @click="twrMode = 'daily'"
+          >
+            自算日
+          </button>
+          <button
+            type="button"
+            class="currency-btn"
+            :class="{ 'currency-btn--active': twrMode === 'simple' }"
+            @click="twrMode = 'simple'"
+          >
+            简单
+          </button>
+          <span class="twr-mode-label">{{ twrModeLabel }}</span>
         </div>
 
         <div class="value-display">
@@ -511,6 +574,18 @@ onUnmounted(() => {
   background: rgba(148, 163, 184, 0.1);
   border-color: rgba(148, 163, 184, 0.5);
   color: #f1f5f9;
+}
+
+.twr-mode-switcher {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.twr-mode-label {
+  font-size: 12px;
+  color: #64748b;
+  margin-left: 6px;
 }
 
 .value-display {
