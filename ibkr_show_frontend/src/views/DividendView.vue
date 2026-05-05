@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Paginator from 'primevue/paginator'
 
-import { fetchDividends, fetchDividendSummary } from '@/api/dividends'
+import { fetchDividends } from '@/api/dividends'
 import ErrorBlock from '@/components/ErrorBlock.vue'
 import LoadingBlock from '@/components/LoadingBlock.vue'
 import StatCard from '@/components/StatCard.vue'
@@ -57,20 +56,28 @@ const paginatedDividends = computed(() => {
 
 const dividendSummary = computed(() => {
   const items = dividendItems.value
-  const amountBySymbol: Record<string, number> = {}
+  const totalAmount = items.reduce((sum, item) => sum + (item.amount ?? 0), 0)
 
-  items.forEach((item) => {
-    const sym = item.symbol ?? 'Unknown'
-    amountBySymbol[sym] = (amountBySymbol[sym] ?? 0) + (item.amount ?? 0)
-  })
+  const now = new Date()
+  const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())
+  const ytdStart = new Date(now.getFullYear(), 0, 1)
+
+  let lastMonthAmount = 0
+  let ytdAmount = 0
+
+  for (const item of items) {
+    const dateStr = item.date_time?.slice(0, 10)
+    if (!dateStr) continue
+    const d = new Date(dateStr)
+    if (d >= oneMonthAgo) lastMonthAmount += item.amount ?? 0
+    if (d >= ytdStart) ytdAmount += item.amount ?? 0
+  }
 
   return {
     record_count: items.length,
-    total_amount: items.reduce((sum, item) => sum + (item.amount ?? 0), 0),
-    total_gross_amount: items.reduce((sum, item) => sum + (item.gross_amount ?? 0), 0),
-    by_symbol: Object.entries(amountBySymbol)
-      .sort((left, right) => left[0].localeCompare(right[0]))
-      .map(([symbol, amount]) => ({ symbol, amount })),
+    total_amount: totalAmount,
+    last_month_amount: lastMonthAmount,
+    ytd_amount: ytdAmount,
   }
 })
 
@@ -163,15 +170,8 @@ onMounted(() => {
           <section class="stats-grid stats-grid--summary">
             <StatCard title="分红笔数" :value="String(dividendSummary.record_count)" icon="pi pi-list" tone="accent" />
             <StatCard title="分红总额" :value="formatNumber(dividendSummary.total_amount)" icon="pi pi-dollar" :tone="toneByNumber(dividendSummary.total_amount)" />
-            <StatCard title="Gross总额" :value="formatNumber(dividendSummary.total_gross_amount)" icon="pi pi-dollar" :tone="toneByNumber(dividendSummary.total_gross_amount)" />
-            <StatCard
-              v-for="item in dividendSummary.by_symbol"
-              :key="item.symbol"
-              :title="`${item.symbol} 分红`"
-              :value="formatNumber(item.amount)"
-              icon="pi pi-chart-bar"
-              :tone="toneByNumber(item.amount)"
-            />
+            <StatCard title="近一个月分红" :value="formatNumber(dividendSummary.last_month_amount)" icon="pi pi-calendar" :tone="toneByNumber(dividendSummary.last_month_amount)" />
+            <StatCard title="今年分红" :value="formatNumber(dividendSummary.ytd_amount)" icon="pi pi-chart-line" :tone="toneByNumber(dividendSummary.ytd_amount)" />
           </section>
         </div>
       </section>
