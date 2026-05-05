@@ -9,10 +9,12 @@ from pathlib import Path
 from typing import Any
 
 from app.schemas.earnings_settings import EarningsPushSettings, TestSendResponse
+from app.schemas.market_sentiment import MarketSentimentResponse
 from app.services.financial_calendar_service import (
     _screen_earnings,
     _fetch_earnings_detail,
 )
+from app.services.market_sentiment_service import MarketSentimentService
 
 logger = logging.getLogger(__name__)
 
@@ -84,9 +86,7 @@ def _build_html_table(events: list[dict[str, Any]]) -> str:
 
     table_body = "\n".join(rows)
     return f"""\
-<html>
-<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a1220;color:#e8edf5;padding:20px">
-<h2 style="color:#56d5ff">📈 今日美股财报日历</h2>
+<h2 style="color:#56d5ff;margin-top:28px">📈 今日美股财报日历</h2>
 <p style="color:#8a9bb5">{date.today().isoformat()} 推送</p>
 <table style="width:100%;border-collapse:collapse;font-size:14px">
 <thead>
@@ -105,9 +105,63 @@ def _build_html_table(events: list[dict[str, Any]]) -> str:
 {table_body}
 </tbody>
 </table>
-<p style="color:#5a6b85;font-size:12px;margin-top:16px">由 ibkr_show 自动推送 · 数据来源 Yahoo Finance</p>
-</body>
-</html>"""
+<p style="color:#5a6b85;font-size:12px;margin-top:16px">由 ibkr_show 自动推送 · 数据来源 Yahoo Finance</p>"""
+
+
+def _build_sentiment_html(sentiment: MarketSentimentResponse) -> str:
+    vix = sentiment.vix_value
+    fg = sentiment.fear_greed_value
+
+    vix_label = ""
+    vix_color = "#8a9bb5"
+    for r in sentiment.vix_ranges:
+        if r.is_current:
+            vix_label = f"{r.label} {r.sentiment}"
+            vix_color = r.color
+            break
+
+    fg_label = ""
+    fg_color = "#8a9bb5"
+    for r in sentiment.fear_greed_ranges:
+        if r.is_current:
+            fg_label = f"{r.label} {r.sentiment}"
+            fg_color = r.color
+            break
+
+    vix_display = f"{vix:.2f}" if vix is not None else "N/A"
+    fg_display = str(fg) if fg is not None else "N/A"
+
+    return f"""\
+<div style="margin-bottom:28px">
+  <h2 style="color:#56d5ff;margin-bottom:16px">🌡️ 今日美股情绪观察</h2>
+  <table style="width:100%;border-collapse:collapse;font-size:14px">
+    <thead>
+      <tr style="background:rgba(62,169,255,0.12);color:#8a9bb5">
+        <th style="padding:10px;text-align:left;border-bottom:1px solid rgba(129,160,207,0.15)">指标</th>
+        <th style="padding:10px;text-align:center;border-bottom:1px solid rgba(129,160,207,0.15)">数值</th>
+        <th style="padding:10px;text-align:center;border-bottom:1px solid rgba(129,160,207,0.15)">区间</th>
+        <th style="padding:10px;text-align:center;border-bottom:1px solid rgba(129,160,207,0.15)">情绪</th>
+        <th style="padding:10px;text-align:left;border-bottom:1px solid rgba(129,160,207,0.15)">策略参考</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding:10px;border-bottom:1px solid rgba(129,160,207,0.08)"><b>VIX 恐慌指数</b></td>
+        <td style="padding:10px;text-align:center;border-bottom:1px solid rgba(129,160,207,0.08)">{vix_display}</td>
+        <td style="padding:10px;text-align:center;border-bottom:1px solid rgba(129,160,207,0.08);color:{vix_color}">{vix_label}</td>
+        <td style="padding:10px;text-align:center;border-bottom:1px solid rgba(129,160,207,0.08)"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:{vix_color};vertical-align:middle;margin-right:4px"></span>{sentiment.vix_level}</td>
+        <td style="padding:10px;text-align:left;border-bottom:1px solid rgba(129,160,207,0.08);color:#8a9bb5">{next((r.strategy for r in sentiment.vix_ranges if r.is_current), "")}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px;border-bottom:1px solid rgba(129,160,207,0.08)"><b>恐惧与贪婪指数</b></td>
+        <td style="padding:10px;text-align:center;border-bottom:1px solid rgba(129,160,207,0.08)">{fg_display}</td>
+        <td style="padding:10px;text-align:center;border-bottom:1px solid rgba(129,160,207,0.08);color:{fg_color}">{fg_label}</td>
+        <td style="padding:10px;text-align:center;border-bottom:1px solid rgba(129,160,207,0.08)"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:{fg_color};vertical-align:middle;margin-right:4px"></span>{sentiment.fear_greed_level}</td>
+        <td style="padding:10px;text-align:left;border-bottom:1px solid rgba(129,160,207,0.08);color:#8a9bb5">{next((r.strategy for r in sentiment.fear_greed_ranges if r.is_current), "")}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>"""
 
 
 def _send_email(
@@ -204,9 +258,31 @@ def trigger_daily_push() -> TestSendResponse:
         today = date.today()
         end = today + timedelta(days=7)
         logger.info("Fetching earnings %s ~ %s for daily push", today, end)
+
+        sentiment = MarketSentimentService().get_sentiment()
+        sentiment_html = _build_sentiment_html(sentiment)
+
         stocks = _screen_earnings(today, end)
         if not stocks:
-            return TestSendResponse(success=True, message="今日无财报数据")
+            body = f"""\
+<html>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a1220;color:#e8edf5;padding:20px">
+{sentiment_html}
+<p style="color:#8a9bb5;margin-top:20px">今日无财报数据</p>
+<p style="color:#5a6b85;font-size:12px;margin-top:16px">由 ibkr_show 自动推送 · 数据来源 Yahoo Finance</p>
+</body>
+</html>"""
+            _send_email(
+                smtp_server=settings.smtp_server,
+                smtp_port=settings.smtp_port,
+                smtp_username=settings.smtp_username,
+                smtp_password=settings.smtp_password,
+                sender_email=settings.sender_email,
+                target_email=settings.target_email,
+                subject=f"🌡️ [{today}] 美股情绪观察",
+                html_body=body,
+            )
+            return TestSendResponse(success=True, message="今日无财报数据，已推送情绪观察")
 
         enriched = []
         for s in stocks:
@@ -215,7 +291,14 @@ def trigger_daily_push() -> TestSendResponse:
                 enriched.append({**s, **detail})
 
         enriched.sort(key=lambda x: (x.get("date", ""), -x.get("mcap", 0)))
-        html = _build_html_table(enriched)
+        earnings_html = _build_html_table(enriched)
+        body = f"""\
+<html>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a1220;color:#e8edf5;padding:20px">
+{sentiment_html}
+{earnings_html}
+</body>
+</html>"""
         _send_email(
             smtp_server=settings.smtp_server,
             smtp_port=settings.smtp_port,
@@ -223,8 +306,8 @@ def trigger_daily_push() -> TestSendResponse:
             smtp_password=settings.smtp_password,
             sender_email=settings.sender_email,
             target_email=settings.target_email,
-            subject=f"📈 [{date.today()}] 美股财报日历推送 ({len(enriched)} 家公司)",
-            html_body=html,
+            subject=f"🌡️ [{today}] 美股情绪观察 & 财报日历 ({len(enriched)} 家公司)",
+            html_body=body,
         )
         return TestSendResponse(success=True, message=f"推送成功，共 {len(enriched)} 家公司")
     except Exception as exc:
