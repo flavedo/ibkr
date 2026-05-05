@@ -50,6 +50,7 @@ class CashFlowService:
             ),
             build_term_filter("currency.keyword", currency),
             build_term_filter("flow_direction.keyword", flow_direction),
+            build_term_filter("flow_type.keyword", "Deposits/Withdrawals"),
         ]
         body = build_search_body(
             filters=[item for item in filters if item],
@@ -97,6 +98,7 @@ class CashFlowService:
             ),
             build_term_filter("currency.keyword", currency),
             build_term_filter("flow_direction.keyword", flow_direction),
+            build_term_filter("flow_type.keyword", "Deposits/Withdrawals"),
         ]
         response = self.es_client.search(
             index=self.settings.es_cash_flow_index,
