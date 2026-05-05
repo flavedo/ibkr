@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.api.deps import get_account_service
 from app.clients.es_client import ESClientError
-from app.core.config import get_settings
 from app.schemas.account import AccountOverviewResponse, ExchangeRateResponse, LatestReportDateResponse
 from app.services.account_service import AccountService
+from app.services.exchange_rate_service import get_exchange_rate
 
 router = APIRouter(prefix="/account", tags=["account"])
 
@@ -42,8 +42,7 @@ def get_exchange_rate(
     from_currency: str = Query(default="USD"),
     to_currency: str = Query(default="CNH"),
 ) -> ExchangeRateResponse:
-    settings = get_settings()
-    rate = settings.fx_usd_cnh
+    rate = get_exchange_rate(from_currency, to_currency)
     return ExchangeRateResponse(
         from_currency=from_currency,
         to_currency=to_currency,

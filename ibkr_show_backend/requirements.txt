@@ -8,3 +8,4 @@ pytest
 httpx
 yfinance
 fear-and-greed
+forex-python
