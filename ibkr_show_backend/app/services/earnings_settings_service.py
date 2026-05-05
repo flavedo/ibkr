@@ -42,6 +42,10 @@ def save_settings(settings: EarningsPushSettings) -> EarningsPushSettings:
     _ensure_config_dir()
     _CONFIG_FILE.write_text(settings.model_dump_json(indent=2))
     logger.info("Earnings push settings saved")
+
+    from app.core.earnings_scheduler import reschedule_push
+    reschedule_push()
+
     return settings
 
 
