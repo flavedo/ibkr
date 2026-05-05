@@ -33,3 +33,9 @@ export interface AccountOverview {
 export interface LatestReportDate {
   report_date: string
 }
+
+export interface ExchangeRate {
+  from_currency: string
+  to_currency: string
+  rate: number
+}

@@ -13,6 +13,7 @@ import {
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 
+import { useCurrency } from '@/composables/useCurrency'
 import type { EquityCurvePoint } from '@/types/charts'
 
 use([LineChart, GridComponent, TooltipComponent, DataZoomComponent, CanvasRenderer])
@@ -34,7 +35,12 @@ const chartInstance = shallowRef<EChartsType | null>(null)
 let resizeObserver: ResizeObserver | null = null
 
 const activeTab = ref<'value' | 'performance'>('value')
-const currency = ref<'CNH' | 'USD'>('CNH')
+const {
+  currentCurrency: currency,
+  switchCurrency,
+  convertValue,
+  currencySymbol,
+} = useCurrency()
 const selectedRange = ref<string>('all')
 const customStartDate = ref('')
 const customEndDate = ref('')
@@ -136,8 +142,9 @@ const dateRangeText = computed(() => {
 function formatDisplayValue(value: number | null): string {
   if (value === null) return '--'
   if (activeTab.value === 'value') {
-    const prefix = currency.value === 'CNH' ? '¥' : '$'
-    return `${prefix}${props.formatNumber(Math.abs(value), 2)}`
+    const converted = convertValue(value)
+    if (converted === null) return '--'
+    return `${currencySymbol()}${props.formatNumber(Math.abs(converted), 2)}`
   }
   return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`
 }
@@ -145,9 +152,10 @@ function formatDisplayValue(value: number | null): string {
 function formatDeltaValue(value: number | null): string {
   if (value === null) return ''
   if (activeTab.value === 'value') {
-    const prefix = value > 0 ? '+' : ''
-    const currencySymbol = currency.value === 'CNH' ? '¥' : '$'
-    return `${prefix}${currencySymbol}${props.formatNumber(Math.abs(value), 2)}`
+    const converted = convertValue(value)
+    if (converted === null) return ''
+    const prefix = converted > 0 ? '+' : ''
+    return `${prefix}${currencySymbol()}${props.formatNumber(Math.abs(converted), 2)}`
   }
   return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`
 }
@@ -163,10 +171,11 @@ function selectRange(rangeKey: string): void {
 
 function buildChartData(): Array<[string, number]> {
   return displayData.value.flatMap((item) => {
-    const value = activeTab.value === 'value' ? item.total_equity : item.daily_twr
-    if (value === null || value === undefined) {
+    const rawValue = activeTab.value === 'value' ? item.total_equity : item.daily_twr
+    if (rawValue === null || rawValue === undefined) {
       return []
     }
+    const value = activeTab.value === 'value' ? (convertValue(rawValue) ?? rawValue) : rawValue
     return [[item.report_date, value]]
   })
 }
@@ -296,7 +305,7 @@ onMounted(() => {
 })
 
 watch(
-  () => [displayData.value, activeTab.value],
+  () => [displayData.value, activeTab.value, currency.value],
   () => {
     renderChart()
   },
@@ -345,7 +354,7 @@ onUnmounted(() => {
             type="button"
             class="currency-btn"
             :class="{ 'currency-btn--active': currency === 'CNH' }"
-            @click="currency = 'CNH'"
+            @click="switchCurrency('CNH')"
           >
             CNH
           </button>
@@ -353,7 +362,7 @@ onUnmounted(() => {
             type="button"
             class="currency-btn"
             :class="{ 'currency-btn--active': currency === 'USD' }"
-            @click="currency = 'USD'"
+            @click="switchCurrency('USD')"
           >
             USD
           </button>

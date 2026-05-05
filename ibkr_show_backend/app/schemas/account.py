@@ -35,3 +35,9 @@ class AccountOverviewResponse(BaseModel):
 
 class LatestReportDateResponse(BaseModel):
     report_date: str
+
+
+class ExchangeRateResponse(BaseModel):
+    from_currency: str
+    to_currency: str
+    rate: float

@@ -33,6 +33,7 @@ class Settings:
     es_trade_index: str
     es_cash_flow_index: str
     es_price_history_index: str
+    fx_usd_cnh: float
 
 
 @lru_cache
@@ -56,4 +57,5 @@ def get_settings() -> Settings:
         es_trade_index=os.getenv("ES_TRADE_INDEX", "ibkr_trade_records_v1"),
         es_cash_flow_index=os.getenv("ES_CASH_FLOW_INDEX", "ibkr_cash_flow_records_v1"),
         es_price_history_index=os.getenv("ES_PRICE_HISTORY_INDEX", "ibkr_symbol_price_history_v1"),
+        fx_usd_cnh=float(os.getenv("FX_USD_CNH", "7.25")),
     )

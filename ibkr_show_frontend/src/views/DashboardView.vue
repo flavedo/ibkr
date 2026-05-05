@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { fetchAccountOverview } from '@/api/account'
 import { fetchEquityCurve } from '@/api/charts'
+import { useCurrency } from '@/composables/useCurrency'
 import EquityCurveSimple from '@/components/EquityCurveSimple.vue'
 import ErrorBlock from '@/components/ErrorBlock.vue'
 import LoadingBlock from '@/components/LoadingBlock.vue'
@@ -16,11 +17,20 @@ const loading = ref(true)
 const errorMessage = ref('')
 let refreshTimer: number | null = null
 
+const {
+  currentCurrency,
+  switchCurrency,
+  convertValue,
+  formatConverted,
+} = useCurrency()
+
 function formatNumber(value: number | null, digits = 2): string {
   if (value === null) {
     return '--'
   }
-
+  if (currentCurrency.value === 'CNH') {
+    return formatConverted(value, digits)
+  }
   return new Intl.NumberFormat('zh-CN', {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
@@ -38,8 +48,13 @@ function formatSignedNumber(value: number | null, digits = 2): string {
   if (value === null) {
     return ''
   }
-  const prefix = value > 0 ? '+' : ''
-  return `${prefix}${formatNumber(value, digits)}`
+  const converted = currentCurrency.value === 'CNH' ? convertValue(value) : value
+  if (converted === null) return ''
+  const prefix = converted > 0 ? '+' : ''
+  return `${prefix}${new Intl.NumberFormat('zh-CN', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(Math.abs(converted))}`
 }
 
 function formatSignedPercent(value: number | null): string {
@@ -47,7 +62,10 @@ function formatSignedPercent(value: number | null): string {
     return ''
   }
   const prefix = value > 0 ? '+' : ''
-  return `${prefix}${formatNumber(value, 2)}%`
+  return `${prefix}${new Intl.NumberFormat('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Math.abs(value))}%`
 }
 
 function deltaTone(metric: AccountDeltaMetric | null): 'neutral' | 'positive' | 'negative' | 'accent' {
@@ -186,6 +204,26 @@ onUnmounted(() => {
     <template v-else>
       <section class="surface-panel dashboard-metrics-panel">
         <div class="surface-panel__content">
+          <div class="dashboard-metrics-header">
+            <div class="currency-switcher">
+              <button
+                type="button"
+                class="currency-btn"
+                :class="{ 'currency-btn--active': currentCurrency === 'CNH' }"
+                @click="switchCurrency('CNH')"
+              >
+                CNH
+              </button>
+              <button
+                type="button"
+                class="currency-btn"
+                :class="{ 'currency-btn--active': currentCurrency === 'USD' }"
+                @click="switchCurrency('USD')"
+              >
+                USD
+              </button>
+            </div>
+          </div>
           <section class="stats-grid dashboard-metrics-grid">
             <StatCard
               v-for="card in statCards"
@@ -212,6 +250,40 @@ onUnmounted(() => {
 <style scoped>
 .dashboard-metrics-panel {
   margin-bottom: var(--space-4);
+}
+
+.dashboard-metrics-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.currency-switcher {
+  display: flex;
+  gap: 6px;
+}
+
+.currency-btn {
+  padding: 6px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  background: transparent;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.currency-btn:hover {
+  border-color: rgba(148, 163, 184, 0.4);
+  color: #cbd5e1;
+}
+
+.currency-btn--active {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.5);
+  color: #f1f5f9;
 }
 
 .dashboard-metrics-grid {
