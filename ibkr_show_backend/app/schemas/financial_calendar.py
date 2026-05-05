@@ -2,31 +2,20 @@ from pydantic import BaseModel
 
 
 class EarningsEvent(BaseModel):
-    symbol: str | None = None
-    company: str
-    marketcap: float | None = None
-    event_name: str | None = None
-    date_time: str | None = None
-    timing: str | None = None
-    eps_estimate: float | None = None
-    reported_eps: float | None = None
-    surprise_pct: float | None = None
+    symbol: str = ""
+    name: str = ""
+    mcap: float = 0
+    exchange: str = ""
+    date: str = ""
+    is_estimate: bool = True
+    eps_avg: float | None = None
+    eps_low: float | None = None
+    eps_high: float | None = None
+    rev_avg: float | None = None
+    rev_low: float | None = None
+    rev_high: float | None = None
+    call_date: str = ""
 
 
 class EarningsCalendarResponse(BaseModel):
     items: list[EarningsEvent]
-
-
-class EconomicEvent(BaseModel):
-    event_name: str | None = None
-    region: str
-    event_time: str | None = None
-    for_period: str | None = None
-    actual: float | None = None
-    expected: float | None = None
-    last: float | None = None
-    revised: float | None = None
-
-
-class EconomicCalendarResponse(BaseModel):
-    items: list[EconomicEvent]

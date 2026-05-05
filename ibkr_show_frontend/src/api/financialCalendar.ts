@@ -2,34 +2,23 @@ import { request } from './http'
 import { withCache } from '@/utils/cache'
 
 export interface EarningsEvent {
-  symbol: string | null
-  company: string
-  marketcap: number | null
-  event_name: string | null
-  date_time: string | null
-  timing: string | null
-  eps_estimate: number | null
-  reported_eps: number | null
-  surprise_pct: number | null
-}
-
-export interface EconomicEvent {
-  event_name: string | null
-  region: string
-  event_time: string | null
-  for_period: string | null
-  actual: number | null
-  expected: number | null
-  last: number | null
-  revised: number | null
+  symbol: string
+  name: string
+  mcap: number
+  exchange: string
+  date: string
+  is_estimate: boolean
+  eps_avg: number | null
+  eps_low: number | null
+  eps_high: number | null
+  rev_avg: number | null
+  rev_low: number | null
+  rev_high: number | null
+  call_date: string
 }
 
 export interface EarningsCalendarResponse {
   items: EarningsEvent[]
-}
-
-export interface EconomicCalendarResponse {
-  items: EconomicEvent[]
 }
 
 function toQueryString(params: Record<string, string | number | undefined | null>): string {
@@ -47,12 +36,5 @@ export function fetchEarningsCalendar(startDate: string, endDate: string): Promi
   return withCache(
     `earnings_${startDate}_${endDate}`,
     () => request<EarningsCalendarResponse>(`/api/financial-calendar/earnings${toQueryString({ start_date: startDate, end_date: endDate })}`)
-  )
-}
-
-export function fetchEconomicCalendar(startDate: string, endDate: string): Promise<EconomicCalendarResponse> {
-  return withCache(
-    `economic_${startDate}_${endDate}`,
-    () => request<EconomicCalendarResponse>(`/api/financial-calendar/economic-events${toQueryString({ start_date: startDate, end_date: endDate })}`)
   )
 }

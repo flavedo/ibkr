@@ -1,17 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import Button from 'primevue/button'
 import Card from 'primevue/card'
 
-import { fetchEarningsCalendar, fetchEconomicCalendar } from '@/api/financialCalendar'
-import type { EarningsEvent, EconomicEvent } from '@/api/financialCalendar'
+import { fetchEarningsCalendar } from '@/api/financialCalendar'
+import type { EarningsEvent } from '@/api/financialCalendar'
 import ErrorBlock from '@/components/ErrorBlock.vue'
 import LoadingBlock from '@/components/LoadingBlock.vue'
 import MarketSentimentCard from '@/components/MarketSentimentCard.vue'
 
-const activeTab = ref<'earnings' | 'economic'>('earnings')
 const earningsEvents = ref<EarningsEvent[]>([])
-const economicEvents = ref<EconomicEvent[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
 
@@ -57,22 +54,24 @@ function formatMonthRange(): { start: string; end: string } {
   return { start, end: `${y}-${String(m + 1).padStart(2, '0')}-01` }
 }
 
-function formatMarketcap(cap: number | null): string {
-  if (cap === null) return '--'
+function formatMarketcap(cap: number): string {
   if (cap >= 1e12) return `$${(cap / 1e12).toFixed(1)}T`
   if (cap >= 1e9) return `$${(cap / 1e9).toFixed(1)}B`
   if (cap >= 1e6) return `$${(cap / 1e6).toFixed(1)}M`
   return `$${cap.toFixed(0)}`
 }
 
-function formatNullable(val: number | null | undefined, digits = 2): string {
-  if (val === null || val === undefined) return '--'
-  return val.toFixed(digits)
-}
-
-function formatEps(val: number | null | undefined): string {
+function formatEps(val: number | null): string {
   if (val === null || val === undefined) return '--'
   return `$${val.toFixed(2)}`
+}
+
+function formatRevenue(val: number | null): string {
+  if (val === null || val === undefined) return '--'
+  if (val >= 1e12) return `$${(val / 1e12).toFixed(2)}T`
+  if (val >= 1e9) return `$${(val / 1e9).toFixed(2)}B`
+  if (val >= 1e6) return `$${(val / 1e6).toFixed(1)}M`
+  return `$${val.toFixed(0)}`
 }
 
 async function loadData(): Promise<void> {
@@ -81,23 +80,13 @@ async function loadData(): Promise<void> {
   const { start, end } = formatMonthRange()
 
   try {
-    if (activeTab.value === 'earnings') {
-      const res = await fetchEarningsCalendar(start, end)
-      earningsEvents.value = res.items
-    } else {
-      const res = await fetchEconomicCalendar(start, end)
-      economicEvents.value = res.items
-    }
+    const res = await fetchEarningsCalendar(start, end)
+    earningsEvents.value = res.items
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : '加载财经日历失败'
+    errorMessage.value = error instanceof Error ? error.message : '加载财报日历失败'
   } finally {
     loading.value = false
   }
-}
-
-async function switchTab(tab: 'earnings' | 'economic'): Promise<void> {
-  activeTab.value = tab
-  await loadData()
 }
 
 onMounted(() => {
@@ -115,9 +104,9 @@ onMounted(() => {
           <div class="calendar-panel__header">
             <div>
               <p class="eyebrow">Financial Calendar</p>
-              <h2 class="panel-title calendar-panel__title">财经日历</h2>
+              <h2 class="panel-title calendar-panel__title">美股财报日历</h2>
               <p class="panel-subtitle calendar-panel__subtitle">
-                通过 Yahoo Finance 获取的美股财报与全球经济事件日历。
+                通过 Yahoo Finance 获取的美股财报日历，包含 EPS/营收预估数据。
               </p>
             </div>
             <div class="calendar-panel__nav">
@@ -134,98 +123,55 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="calendar-panel__tabs">
-            <button
-              class="tab-button"
-              :class="{ 'tab-button--active': activeTab === 'earnings' }"
-              @click="switchTab('earnings')"
-            >
-              📈 美股财报
-            </button>
-            <button
-              class="tab-button"
-              :class="{ 'tab-button--active': activeTab === 'economic' }"
-              @click="switchTab('economic')"
-            >
-              📊 经济事件
-            </button>
-          </div>
-
           <LoadingBlock v-if="loading" />
           <ErrorBlock v-else-if="errorMessage" :message="errorMessage" />
 
-          <template v-else-if="activeTab === 'earnings'">
+          <template v-else>
             <div v-if="earningsEvents.length === 0" class="empty-state">本月无财报数据</div>
             <div v-else class="table-wrapper">
               <table class="data-table">
                 <thead>
                   <tr>
+                    <th>日期</th>
                     <th>代码</th>
                     <th>公司</th>
                     <th>市值</th>
-                    <th>事件</th>
-                    <th>日期</th>
-                    <th>时段</th>
-                    <th>EPS预估</th>
-                    <th>实际EPS</th>
+                    <th>交易所</th>
+                    <th class="table-col--number">EPS均值</th>
+                    <th class="table-col--number">EPS范围</th>
+                    <th class="table-col--number">营收均值</th>
+                    <th>电话会议</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="(item, index) in earningsEvents" :key="index">
-                    <td class="cell-symbol">{{ item.symbol ?? '--' }}</td>
-                    <td class="cell-company">{{ item.company }}</td>
-                    <td class="table-col--number">{{ formatMarketcap(item.marketcap) }}</td>
-                    <td>{{ item.event_name ?? '--' }}</td>
-                    <td>{{ item.date_time?.slice(5, 16) ?? '--' }}</td>
                     <td>
-                      <span v-if="item.timing === 'AMC'" class="tag tag--amc">盘后</span>
-                      <span v-else-if="item.timing === 'BMO'" class="tag tag--bmo">盘前</span>
-                      <span v-else-if="item.timing === 'TAS'" class="tag tag--tas">盘中</span>
-                      <span v-else>{{ item.timing || '--' }}</span>
+                      <span class="tag" :class="item.is_estimate ? 'tag--estimate' : 'tag--confirmed'">
+                        {{ item.is_estimate ? '预估' : '确认' }}
+                      </span>
+                      {{ item.date ? item.date.slice(5) : '--' }}
                     </td>
-                    <td class="table-col--number">{{ formatEps(item.eps_estimate) }}</td>
-                    <td class="table-col--number">{{ formatEps(item.reported_eps) }}</td>
+                    <td class="cell-symbol">{{ item.symbol }}</td>
+                    <td class="cell-company">{{ item.name }}</td>
+                    <td class="table-col--number">{{ formatMarketcap(item.mcap) }}</td>
+                    <td>
+                      <span class="exchange-tag">{{ item.exchange || '--' }}</span>
+                    </td>
+                    <td class="table-col--number">{{ formatEps(item.eps_avg) }}</td>
+                    <td class="table-col--number">
+                      <span v-if="item.eps_low !== null && item.eps_high !== null" class="eps-range">
+                        {{ formatEps(item.eps_low) }} ~ {{ formatEps(item.eps_high) }}
+                      </span>
+                      <span v-else>--</span>
+                    </td>
+                    <td class="table-col--number">{{ formatRevenue(item.rev_avg) }}</td>
+                    <td>{{ item.call_date || '--' }}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
             <p class="calendar-panel__footnote">
-              共 {{ earningsEvents.length }} 条财报事件
-            </p>
-          </template>
-
-          <template v-else-if="activeTab === 'economic'">
-            <div v-if="economicEvents.length === 0" class="empty-state">本月无经济事件数据</div>
-            <div v-else class="table-wrapper">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>事件</th>
-                    <th>地区</th>
-                    <th>时间</th>
-                    <th>对应月份</th>
-                    <th class="table-col--number">实际值</th>
-                    <th class="table-col--number">预期值</th>
-                    <th class="table-col--number">前值</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(item, index) in economicEvents" :key="index">
-                    <td class="cell-event-name">{{ item.event_name ?? '--' }}</td>
-                    <td>
-                      <span class="region-flag">{{ item.region }}</span>
-                    </td>
-                    <td>{{ item.event_time?.slice(5, 16) ?? '--' }}</td>
-                    <td>{{ item.for_period ?? '--' }}</td>
-                    <td class="table-col--number">{{ formatNullable(item.actual) }}</td>
-                    <td class="table-col--number">{{ formatNullable(item.expected) }}</td>
-                    <td class="table-col--number">{{ formatNullable(item.last) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <p class="calendar-panel__footnote">
-              共 {{ economicEvents.length }} 条经济事件
+              共 {{ earningsEvents.length }} 家公司财报
             </p>
           </template>
         </div>
@@ -259,35 +205,6 @@ onMounted(() => {
   text-align: center;
   font-weight: 600;
   font-size: 1rem;
-}
-
-.calendar-panel__tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: var(--space-4);
-}
-
-.tab-button {
-  padding: 8px 20px;
-  border: 1px solid rgba(129, 160, 207, 0.16);
-  border-radius: 10px;
-  background: rgba(10, 18, 32, 0.6);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  font-size: 0.95rem;
-  transition: all 0.15s ease;
-}
-
-.tab-button:hover {
-  border-color: rgba(86, 213, 255, 0.3);
-  background: rgba(18, 38, 64, 0.8);
-}
-
-.tab-button--active {
-  border-color: rgba(86, 213, 255, 0.35);
-  background: linear-gradient(180deg, rgba(32, 79, 129, 0.94), rgba(16, 45, 81, 0.96));
-  color: var(--color-text-primary);
-  box-shadow: 0 0 20px rgba(62, 169, 255, 0.1);
 }
 
 .table-wrapper {
@@ -334,25 +251,20 @@ onMounted(() => {
 
 .cell-company {
   font-weight: 600;
-}
-
-.cell-event-name {
-  font-weight: 500;
-  max-width: 300px;
+  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.region-flag {
+.exchange-tag {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
   padding: 2px 8px;
   border-radius: 6px;
   background: rgba(129, 160, 207, 0.1);
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   letter-spacing: 0.04em;
 }
 
@@ -362,21 +274,22 @@ onMounted(() => {
   border-radius: 6px;
   font-size: 0.82rem;
   font-weight: 600;
+  margin-right: 4px;
 }
 
-.tag--amc {
+.tag--confirmed {
   background: rgba(52, 210, 163, 0.15);
   color: var(--color-positive);
 }
 
-.tag--bmo {
+.tag--estimate {
   background: rgba(255, 189, 122, 0.15);
   color: #ffbd7a;
 }
 
-.tag--tas {
-  background: rgba(86, 213, 255, 0.12);
-  color: var(--color-accent-strong);
+.eps-range {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
 }
 
 .calendar-panel__footnote {
