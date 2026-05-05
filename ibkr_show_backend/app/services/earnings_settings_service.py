@@ -126,21 +126,37 @@ def _send_email(
     msg["To"] = target_email
     msg.attach(MIMEText(html_body, "html", "utf-8"))
 
-    ctx = ssl.create_default_context()
+    # Try SMTP_SSL first (port 465), fall back to STARTTLS (port 587/25)
+    last_error: Exception | None = None
 
-    if smtp_port == 465:
-        with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=30, context=ctx) as server:
-            server.login(smtp_username, smtp_password)
-            server.sendmail(sender_email, [target_email], msg.as_string())
-    else:
-        with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
-            server.set_debuglevel(1)
-            server.ehlo()
-            if server.has_extn("STARTTLS"):
-                server.starttls(context=ctx)
+    for use_ssl in ([True, False] if smtp_port == 465 else [False, True]):
+        try:
+            if use_ssl:
+                server = smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=30)
+            else:
+                server = smtplib.SMTP(smtp_server, smtp_port, timeout=30)
+
+            with server:
+                server.set_debuglevel(1)
                 server.ehlo()
-            server.login(smtp_username, smtp_password)
-            server.sendmail(sender_email, [target_email], msg.as_string())
+                if not use_ssl and server.has_extn("STARTTLS"):
+                    ctx = ssl.create_default_context()
+                    server.starttls(context=ctx)
+                    server.ehlo()
+                server.login(smtp_username, smtp_password)
+                server.sendmail(sender_email, [target_email], msg.as_string())
+                logger.info("Email sent via %s port %d (ssl=%s)", smtp_server, smtp_port, use_ssl)
+                return
+        except smtplib.SMTPServerDisconnected as exc:
+            last_error = exc
+            logger.warning("SMTP %s port %d (ssl=%s) failed: %s", smtp_server, smtp_port, use_ssl, exc)
+            continue
+        except Exception as exc:
+            last_error = exc
+            logger.warning("SMTP %s port %d (ssl=%s) failed: %s", smtp_server, smtp_port, use_ssl, exc)
+            continue
+
+    raise RuntimeError(f"Email send failed after all attempts") from last_error
 
 
 def test_send(
