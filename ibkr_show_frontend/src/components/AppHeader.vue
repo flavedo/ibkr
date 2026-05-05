@@ -66,13 +66,20 @@ function handleImportClick(): void {
 
 async function handleFileChange(event: Event): Promise<void> {
   const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
+  const fileList = input.files
+  if (!fileList || fileList.length === 0) return
   isImporting.value = true
+  const fileCount = fileList.length
   try {
-    await importCSV(file)
+    const result = await importCSV(Array.from(fileList))
+    const successCount = Object.keys(result.results ?? {}).length
+    const errorCount = Object.keys(result.errors ?? {}).length
+    let msg = `成功导入 ${successCount}/${fileCount} 个文件`
+    if (errorCount > 0) {
+      msg += `，${errorCount} 个文件失败`
+    }
     await loadOverview()
-    showToast('CSV 导入成功', 'success')
+    showToast(msg, errorCount > 0 && successCount === 0 ? 'error' : 'success')
   } catch (error) {
     showToast(error instanceof Error ? error.message : '导入失败', 'error')
   } finally {
@@ -199,6 +206,7 @@ onUnmounted(() => {
               ref="fileInputRef"
               type="file"
               accept=".csv"
+              multiple
               style="display: none"
               @change="handleFileChange"
             />

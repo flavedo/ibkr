@@ -31,45 +31,47 @@ async def trigger_data_refresh() -> dict:
 
 
 @router.post("/import-csv")
-async def import_csv(file: UploadFile = File(...)) -> dict:
-    if not file.filename:
+async def import_csv(files: list[UploadFile] = File(...)) -> dict:
+    if not files:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No filename provided",
+            detail="No files provided",
         )
 
-    if not file.filename.endswith('.csv'):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File must be a CSV",
-        )
+    results: dict[str, dict] = {}
+    errors: dict[str, str] = {}
 
-    try:
-        with tempfile.NamedTemporaryFile(prefix="ibkr_import_", suffix=".csv", delete=False) as temp_file:
-            content = await file.read()
-            temp_file.write(content)
-            temp_path = Path(temp_file.name)
+    for file in files:
+        filename = file.filename or "unknown"
+        if not filename.endswith('.csv'):
+            errors[filename] = "File must be a CSV"
+            continue
 
         try:
-            import sys
-            sys.path.insert(0, "/app")
-            from app.core.config import get_settings
-            from worker.clients.es_client import ElasticsearchWriter
-            from worker.jobs.import_daily_snapshot import import_daily_snapshot_file
+            with tempfile.NamedTemporaryFile(prefix="ibkr_import_", suffix=".csv", delete=False) as temp_file:
+                content = await file.read()
+                temp_file.write(content)
+                temp_path = Path(temp_file.name)
 
-            settings = get_settings()
-            es_writer = ElasticsearchWriter(settings)
+            try:
+                import sys
+                sys.path.insert(0, "/app")
+                from app.core.config import get_settings
+                from worker.clients.es_client import ElasticsearchWriter
+                from worker.jobs.import_daily_snapshot import import_daily_snapshot_file
 
-            import_result = import_daily_snapshot_file(es_writer, temp_path)
-            return {"success": True, "result": import_result}
-        finally:
-            os.unlink(temp_path)
-    except Exception as e:
-        logger.exception("Failed to import CSV")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to import CSV: {str(e)}",
-        )
+                settings = get_settings()
+                es_writer = ElasticsearchWriter(settings)
+
+                import_result = import_daily_snapshot_file(es_writer, temp_path)
+                results[filename] = import_result
+            finally:
+                os.unlink(temp_path)
+        except Exception as e:
+            logger.exception("Failed to import CSV: %s", filename)
+            errors[filename] = str(e)
+
+    return {"success": True, "results": results, "errors": errors}
 
 
 @router.post("/clear")
