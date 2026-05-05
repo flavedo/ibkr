@@ -8,12 +8,8 @@ from email.mime.text import MIMEText
 from pathlib import Path
 from typing import Any
 
-import requests
-
 from app.schemas.earnings_settings import EarningsPushSettings, TestSendResponse
 from app.services.financial_calendar_service import (
-    _get_crumb,
-    _get_session,
     _screen_earnings,
     _fetch_earnings_detail,
 )
@@ -131,10 +127,20 @@ def _send_email(
     msg.attach(MIMEText(html_body, "html", "utf-8"))
 
     ctx = ssl.create_default_context()
-    with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
-        server.starttls(context=ctx)
-        server.login(smtp_username, smtp_password)
-        server.sendmail(sender_email, [target_email], msg.as_string())
+
+    if smtp_port == 465:
+        with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=30, context=ctx) as server:
+            server.login(smtp_username, smtp_password)
+            server.sendmail(sender_email, [target_email], msg.as_string())
+    else:
+        with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
+            server.set_debuglevel(1)
+            server.ehlo()
+            if server.has_extn("STARTTLS"):
+                server.starttls(context=ctx)
+                server.ehlo()
+            server.login(smtp_username, smtp_password)
+            server.sendmail(sender_email, [target_email], msg.as_string())
 
 
 def test_send(
