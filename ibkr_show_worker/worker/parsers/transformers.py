@@ -569,7 +569,7 @@ def _transform_stfu_dividend_rows(
 
     for row in section.rows:
         activity_code = _get_value(row, "ActivityCode")
-        if activity_code != "DIV":
+        if activity_code not in ("DIV", "PIL", "FRTAX"):
             continue
 
         account_id = _get_value(row, "ClientAccountID", "AccountId") or "unknown"
@@ -585,6 +585,10 @@ def _transform_stfu_dividend_rows(
         amount_in_base = amount * fx_rate_to_base if amount is not None and fx_rate_to_base is not None else amount
 
         flow_direction = "deposit" if amount is not None and amount >= 0 else "withdrawal"
+
+        tax = None
+        if activity_code == "FRTAX":
+            tax = abs(amount) if amount is not None else None
 
         document = {
             "_id": build_cash_flow_record_id(
@@ -604,7 +608,7 @@ def _transform_stfu_dividend_rows(
             "available_for_trading_date": None,
             "amount": amount,
             "gross_amount": amount,
-            "tax": None,
+            "tax": tax,
             "fx_rate_to_base": fx_rate_to_base,
             "amount_in_base": amount_in_base,
             "flow_direction": flow_direction,

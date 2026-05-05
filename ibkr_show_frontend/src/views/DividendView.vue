@@ -233,7 +233,7 @@ onMounted(() => {
                     <th>日期</th>
                     <th>代码</th>
                     <th>描述</th>
-                    <th>数量</th>
+                    <th>活动描述</th>
                     <th class="sortable" @click="setSort('gross_amount')">
                       Gross金额
                       <span v-if="sortKey === 'gross_amount'" class="sort-indicator">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
