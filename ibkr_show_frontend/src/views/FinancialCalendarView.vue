@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import Button from 'primevue/button'
 import Card from 'primevue/card'
 
 import { fetchEarningsCalendar } from '@/api/financialCalendar'
@@ -7,6 +9,8 @@ import type { EarningsEvent } from '@/api/financialCalendar'
 import ErrorBlock from '@/components/ErrorBlock.vue'
 import LoadingBlock from '@/components/LoadingBlock.vue'
 import MarketSentimentCard from '@/components/MarketSentimentCard.vue'
+
+const router = useRouter()
 
 type ViewMode = 'month' | 'week'
 
@@ -195,6 +199,11 @@ onMounted(() => {
               <button class="p-button p-button-sm p-button-secondary" type="button" @click="goToCurrent">
                 今{{ viewMode === 'month' ? '月' : '周' }}
               </button>
+              <Button
+                icon="pi pi-cog"
+                class="p-button p-button-sm p-button-text settings-btn"
+                @click="router.push('/earnings-settings')"
+              />
             </div>
           </div>
 
@@ -287,6 +296,15 @@ onMounted(() => {
   border: 1px solid rgba(129, 160, 207, 0.16);
   border-radius: 8px;
   overflow: hidden;
+}
+
+.settings-btn {
+  opacity: 0.5;
+  transition: opacity 0.15s ease;
+}
+
+.settings-btn:hover {
+  opacity: 1;
 }
 
 .toggle-btn {

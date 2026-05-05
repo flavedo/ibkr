@@ -37,6 +37,11 @@ const router = createRouter({
       name: 'cash-flows',
       component: () => import('@/views/CashFlowsView.vue'),
     },
+    {
+      path: '/earnings-settings',
+      name: 'earnings-settings',
+      component: () => import('@/views/EarningsSettingsView.vue'),
+    },
   ],
 })
 

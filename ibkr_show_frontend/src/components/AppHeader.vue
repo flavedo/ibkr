@@ -88,6 +88,7 @@ const navItems = [
   { label: '交易', icon: 'pi pi-list', to: '/trades' },
   { label: '分红', icon: 'pi pi-dollar', to: '/dividends' },
   { label: '出入金', icon: 'pi pi-wallet', to: '/cash-flows' },
+  { label: '设置', icon: 'pi pi-cog', to: '/earnings-settings' },
 ]
 
 function isActive(path: string): boolean {
