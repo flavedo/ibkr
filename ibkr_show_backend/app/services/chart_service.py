@@ -155,6 +155,7 @@ class ChartService:
                     "bool": {
                         "filter": [
                             {"term": {"account_id.keyword": account_id}},
+                            {"term": {"flow_type.keyword": "Deposits/Withdrawals"}},
                             {"range": {"date_time": {"lte": effective_end.isoformat()}}},
                         ]
                     }
