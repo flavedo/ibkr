@@ -105,29 +105,39 @@ const filteredItems = computed(() => {
 
 const displayData = computed(() => filteredItems.value)
 
+const currentDisplayPoint = computed(() => displayData.value[displayData.value.length - 1] ?? null)
+
+const cumulativeTwr = computed(() => {
+  if (!displayData.value.length) return null
+  let cumulative = 1.0
+  for (const item of displayData.value) {
+    if (item.daily_twr !== null && item.daily_twr !== undefined) {
+      cumulative *= 1.0 + item.daily_twr / 100.0
+    }
+  }
+  return (cumulative - 1.0) * 100.0
+})
+
 const currentValue = computed(() => {
-  if (!latestPoint.value) return null
-  return activeTab.value === 'value' ? latestPoint.value.total_equity : latestPoint.value.daily_twr
+  if (!currentDisplayPoint.value) return null
+  return activeTab.value === 'value' ? currentDisplayPoint.value.total_equity : cumulativeTwr.value
 })
 
 const startValue = computed(() => {
   if (!displayData.value.length) return null
   const first = displayData.value[0]
-  return activeTab.value === 'value' ? first.total_equity : first.daily_twr
+  return activeTab.value === 'value' ? first.total_equity : 0
 })
 
 const deltaValue = computed(() => {
   if (currentValue.value === null || startValue.value === null) return null
-  if (activeTab.value === 'performance') {
-    return currentValue.value - startValue.value
-  }
   return currentValue.value - startValue.value
 })
 
 const deltaPercent = computed(() => {
   if (currentValue.value === null || startValue.value === null || startValue.value === 0) return null
   if (activeTab.value === 'performance') {
-    return currentValue.value - startValue.value
+    return currentValue.value
   }
   return ((currentValue.value - startValue.value) / Math.abs(startValue.value)) * 100
 })
@@ -166,14 +176,21 @@ function selectRange(rangeKey: string): void {
 }
 
 function buildChartData(): Array<[string, number]> {
-  return displayData.value.flatMap((item) => {
-    const rawValue = activeTab.value === 'value' ? item.total_equity : item.daily_twr
-    if (rawValue === null || rawValue === undefined) {
-      return []
+  if (activeTab.value === 'value') {
+    return displayData.value.flatMap((item) => {
+      if (item.total_equity === null || item.total_equity === undefined) return []
+      return [[item.report_date, convertValue(item.total_equity) ?? item.total_equity]]
+    })
+  }
+  let cumulative = 1.0
+  const result: Array<[string, number]> = []
+  for (const item of displayData.value) {
+    if (item.daily_twr !== null && item.daily_twr !== undefined) {
+      cumulative *= 1.0 + item.daily_twr / 100.0
     }
-    const value = activeTab.value === 'value' ? (convertValue(rawValue) ?? rawValue) : rawValue
-    return [[item.report_date, value]]
-  })
+    result.push([item.report_date, (cumulative - 1.0) * 100.0])
+  }
+  return result
 }
 
 function renderChart(): void {
