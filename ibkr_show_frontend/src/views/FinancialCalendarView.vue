@@ -8,50 +8,109 @@ import ErrorBlock from '@/components/ErrorBlock.vue'
 import LoadingBlock from '@/components/LoadingBlock.vue'
 import MarketSentimentCard from '@/components/MarketSentimentCard.vue'
 
+type ViewMode = 'month' | 'week'
+
 const earningsEvents = ref<EarningsEvent[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
+const viewMode = ref<ViewMode>('month')
 
 const today = new Date()
 const currentYear = ref(today.getFullYear())
 const currentMonth = ref(today.getMonth() + 1)
 
-const monthLabel = computed(() => `${currentYear.value}年${currentMonth.value}月`)
+function getMonday(d: Date): Date {
+  const date = new Date(d)
+  const day = date.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  date.setDate(date.getDate() + diff)
+  date.setHours(0, 0, 0, 0)
+  return date
+}
 
-function goToPrevMonth(): void {
-  if (currentMonth.value === 1) {
-    currentMonth.value = 12
-    currentYear.value -= 1
+const currentWeekStart = ref(getMonday(today))
+
+function formatDate(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+const periodLabel = computed(() => {
+  if (viewMode.value === 'month') {
+    return `${currentYear.value}年${currentMonth.value}月`
+  }
+  const start = currentWeekStart.value
+  const end = new Date(start)
+  end.setDate(end.getDate() + 6)
+  const sameMonth = start.getMonth() === end.getMonth()
+  if (sameMonth) {
+    return `${start.getMonth() + 1}月${start.getDate()}日 - ${end.getDate()}日`
+  }
+  return `${start.getMonth() + 1}月${start.getDate()}日 - ${end.getMonth() + 1}月${end.getDate()}日`
+})
+
+function goToPrev(): void {
+  if (viewMode.value === 'month') {
+    if (currentMonth.value === 1) {
+      currentMonth.value = 12
+      currentYear.value -= 1
+    } else {
+      currentMonth.value -= 1
+    }
   } else {
-    currentMonth.value -= 1
+    const d = new Date(currentWeekStart.value)
+    d.setDate(d.getDate() - 7)
+    currentWeekStart.value = d
   }
   void loadData()
 }
 
-function goToNextMonth(): void {
-  if (currentMonth.value === 12) {
-    currentMonth.value = 1
-    currentYear.value += 1
+function goToNext(): void {
+  if (viewMode.value === 'month') {
+    if (currentMonth.value === 12) {
+      currentMonth.value = 1
+      currentYear.value += 1
+    } else {
+      currentMonth.value += 1
+    }
   } else {
-    currentMonth.value += 1
+    const d = new Date(currentWeekStart.value)
+    d.setDate(d.getDate() + 7)
+    currentWeekStart.value = d
   }
   void loadData()
 }
 
-function goToCurrentMonth(): void {
-  currentYear.value = today.getFullYear()
-  currentMonth.value = today.getMonth() + 1
+function goToCurrent(): void {
+  const now = new Date()
+  currentYear.value = now.getFullYear()
+  currentMonth.value = now.getMonth() + 1
+  currentWeekStart.value = getMonday(now)
   void loadData()
 }
 
-function formatMonthRange(): { start: string; end: string } {
-  const y = currentYear.value
-  const m = currentMonth.value
-  const start = `${y}-${String(m).padStart(2, '0')}-01`
-  if (m === 12) {
-    return { start, end: `${y + 1}-01-01` }
+function switchView(mode: ViewMode): void {
+  viewMode.value = mode
+  goToCurrent()
+}
+
+function formatDateRange(): { start: string; end: string } {
+  if (viewMode.value === 'month') {
+    const y = currentYear.value
+    const m = currentMonth.value
+    const start = `${y}-${String(m).padStart(2, '0')}-01`
+    if (m === 12) {
+      return { start, end: `${y + 1}-01-01` }
+    }
+    return { start, end: `${y}-${String(m + 1).padStart(2, '0')}-01` }
   }
-  return { start, end: `${y}-${String(m + 1).padStart(2, '0')}-01` }
+  const start = formatDate(currentWeekStart.value)
+  const endDate = new Date(currentWeekStart.value)
+  endDate.setDate(endDate.getDate() + 7)
+  const end = formatDate(endDate)
+  return { start, end }
 }
 
 function formatMarketcap(cap: number): string {
@@ -77,7 +136,7 @@ function formatRevenue(val: number | null): string {
 async function loadData(): Promise<void> {
   loading.value = true
   errorMessage.value = ''
-  const { start, end } = formatMonthRange()
+  const { start, end } = formatDateRange()
 
   try {
     const res = await fetchEarningsCalendar(start, end)
@@ -110,15 +169,31 @@ onMounted(() => {
               </p>
             </div>
             <div class="calendar-panel__nav">
-              <button class="p-button p-button-sm p-button-text" type="button" aria-label="上个月" @click="goToPrevMonth">
+              <div class="view-toggle">
+                <button
+                  class="toggle-btn"
+                  :class="{ 'toggle-btn--active': viewMode === 'month' }"
+                  @click="switchView('month')"
+                >
+                  月
+                </button>
+                <button
+                  class="toggle-btn"
+                  :class="{ 'toggle-btn--active': viewMode === 'week' }"
+                  @click="switchView('week')"
+                >
+                  周
+                </button>
+              </div>
+              <button class="p-button p-button-sm p-button-text" type="button" aria-label="上一个" @click="goToPrev">
                 <span class="pi pi-chevron-left" />
               </button>
-              <span class="month-label">{{ monthLabel }}</span>
-              <button class="p-button p-button-sm p-button-text" type="button" aria-label="下个月" @click="goToNextMonth">
+              <span class="period-label">{{ periodLabel }}</span>
+              <button class="p-button p-button-sm p-button-text" type="button" aria-label="下一个" @click="goToNext">
                 <span class="pi pi-chevron-right" />
               </button>
-              <button class="p-button p-button-sm p-button-secondary" type="button" @click="goToCurrentMonth">
-                本月
+              <button class="p-button p-button-sm p-button-secondary" type="button" @click="goToCurrent">
+                今{{ viewMode === 'month' ? '月' : '周' }}
               </button>
             </div>
           </div>
@@ -200,11 +275,39 @@ onMounted(() => {
   gap: var(--space-1);
 }
 
-.month-label {
-  min-width: 100px;
+.period-label {
+  min-width: 140px;
   text-align: center;
   font-weight: 600;
   font-size: 1rem;
+}
+
+.view-toggle {
+  display: flex;
+  border: 1px solid rgba(129, 160, 207, 0.16);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.toggle-btn {
+  padding: 4px 14px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.toggle-btn:hover {
+  background: rgba(129, 160, 207, 0.08);
+}
+
+.toggle-btn--active {
+  background: rgba(62, 169, 255, 0.15);
+  color: var(--color-accent-strong);
+  font-weight: 600;
 }
 
 .table-wrapper {
