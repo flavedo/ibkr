@@ -545,6 +545,7 @@ def _transform_daily_cash_flows(statement: FlexStatement, source_query_type: str
             row
             for row in ctrn_section.rows
             if (_get_value(row, "Type") or "").strip() == "Deposits/Withdrawals"
+            and (_get_value(row, "LevelOfDetail") or "").strip().upper() == "DETAIL"
         ]
         documents.extend(_transform_cash_flow_rows(relevant_rows, statement.source_file, source_query_type))
 
@@ -570,6 +571,8 @@ def _transform_stfu_dividend_rows(
     for row in section.rows:
         activity_code = _get_value(row, "ActivityCode")
         if activity_code not in ("DIV", "PIL", "FRTAX"):
+            continue
+        if (_get_value(row, "LevelOfDetail") or "").strip().upper() != "DETAIL":
             continue
 
         account_id = _get_value(row, "ClientAccountID", "AccountId") or "unknown"
@@ -644,6 +647,8 @@ def _transform_stfu_deposit_withdrawal_rows(
     for row in section.rows:
         activity_code = _get_value(row, "ActivityCode")
         if activity_code not in ("DEP", "WDL"):
+            continue
+        if (_get_value(row, "LevelOfDetail") or "").strip().upper() != "DETAIL":
             continue
 
         account_id = _get_value(row, "ClientAccountID", "AccountId") or "unknown"
