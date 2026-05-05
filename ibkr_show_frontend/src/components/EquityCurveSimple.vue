@@ -395,6 +395,33 @@ onUnmounted(() => {
           <div class="account-info">
             账户{{ activeTab === 'value' ? '净值' : '收益率' }} (DEMO) 截止 {{ latestPoint?.report_date ?? '--' }}
           </div>
+          <div v-if="activeTab === 'performance'" class="twr-mode-switcher-header">
+            <button
+              type="button"
+              class="twr-mode-btn"
+              :class="{ 'twr-mode-btn--active': twrMode === 'twr' }"
+              @click="twrMode = 'twr'"
+            >
+              TWR
+            </button>
+            <button
+              type="button"
+              class="twr-mode-btn"
+              :class="{ 'twr-mode-btn--active': twrMode === 'daily' }"
+              @click="twrMode = 'daily'"
+            >
+              自算日
+            </button>
+            <button
+              type="button"
+              class="twr-mode-btn"
+              :class="{ 'twr-mode-btn--active': twrMode === 'simple' }"
+              @click="twrMode = 'simple'"
+            >
+              简单
+            </button>
+            <span class="twr-mode-header-label">{{ twrModeLabel }}</span>
+          </div>
         </div>
 
         <div class="currency-switcher">
@@ -414,34 +441,6 @@ onUnmounted(() => {
           >
             USD
           </button>
-        </div>
-
-        <div v-if="activeTab === 'performance'" class="twr-mode-switcher">
-          <button
-            type="button"
-            class="currency-btn"
-            :class="{ 'currency-btn--active': twrMode === 'twr' }"
-            @click="twrMode = 'twr'"
-          >
-            TWR
-          </button>
-          <button
-            type="button"
-            class="currency-btn"
-            :class="{ 'currency-btn--active': twrMode === 'daily' }"
-            @click="twrMode = 'daily'"
-          >
-            自算日
-          </button>
-          <button
-            type="button"
-            class="currency-btn"
-            :class="{ 'currency-btn--active': twrMode === 'simple' }"
-            @click="twrMode = 'simple'"
-          >
-            简单
-          </button>
-          <span class="twr-mode-label">{{ twrModeLabel }}</span>
         </div>
 
         <div class="value-display">
@@ -576,16 +575,40 @@ onUnmounted(() => {
   color: #f1f5f9;
 }
 
-.twr-mode-switcher {
+.twr-mode-switcher-header {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  margin-left: 12px;
 }
 
-.twr-mode-label {
-  font-size: 12px;
+.twr-mode-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  background: transparent;
   color: #64748b;
-  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.twr-mode-btn:hover {
+  border-color: rgba(148, 163, 184, 0.4);
+  color: #94a3b8;
+}
+
+.twr-mode-btn--active {
+  background: rgba(86, 213, 255, 0.1);
+  border-color: rgba(86, 213, 255, 0.35);
+  color: #56d5ff;
+}
+
+.twr-mode-header-label {
+  font-size: 11px;
+  color: #475569;
+  margin-left: 4px;
 }
 
 .value-display {
