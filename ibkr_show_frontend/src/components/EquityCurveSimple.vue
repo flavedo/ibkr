@@ -121,11 +121,10 @@ const performanceValue = computed(() => {
   if (!displayData.value.length) return null
 
   if (twrMode.value === 'simple') {
-    const first = firstDisplayPoint.value
     const last = currentDisplayPoint.value
-    if (!first || !last || first.total_equity === null || first.total_equity === 0) return null
-    if (last.total_equity === null) return null
-    return ((last.total_equity - first.total_equity) / Math.abs(first.total_equity)) * 100
+    if (!last || last.total_equity === null || last.net_cost === null || last.net_cost === 0) return null
+    const profit = last.total_equity - last.net_cost
+    return (profit / Math.abs(last.net_cost)) * 100
   }
 
   const field = twrMode.value === 'twr' ? 'cnav_twr' : 'daily_twr'
@@ -206,12 +205,11 @@ function buildChartData(): Array<[string, number]> {
 
   if (twrMode.value === 'simple') {
     return displayData.value.map((item) => {
-      const first = displayData.value[0]
-      if (!first || first.total_equity === null || first.total_equity === 0 || item.total_equity === null) {
+      if (item.total_equity === null || item.net_cost === null || item.net_cost === 0) {
         return [item.report_date, 0]
       }
-      const val = ((item.total_equity - first.total_equity) / Math.abs(first.total_equity)) * 100
-      return [item.report_date, val]
+      const profit = item.total_equity - item.net_cost
+      return [item.report_date, (profit / Math.abs(item.net_cost)) * 100]
     })
   }
 
