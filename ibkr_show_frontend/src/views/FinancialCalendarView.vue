@@ -17,7 +17,7 @@ type ViewMode = 'month' | 'week'
 const earningsEvents = ref<EarningsEvent[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
-const viewMode = ref<ViewMode>('month')
+const viewMode = ref<ViewMode>('week')
 
 const today = new Date()
 const currentYear = ref(today.getFullYear())
