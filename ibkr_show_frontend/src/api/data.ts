@@ -1,10 +1,7 @@
+import { request } from './http'
+
 export async function triggerDataRefresh(): Promise<{ success: boolean; result?: unknown }> {
-  const response = await fetch('/api/data/refresh', { method: 'POST' })
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Unknown error' }))
-    throw new Error(error.detail || `HTTP ${response.status}`)
-  }
-  return response.json()
+  return request('/api/data/refresh', { method: 'POST' })
 }
 
 export async function importCSV(files: File[]): Promise<{ success: boolean; results?: Record<string, unknown>; errors?: Record<string, string> }> {
@@ -13,9 +10,16 @@ export async function importCSV(files: File[]): Promise<{ success: boolean; resu
     formData.append('files', file)
   })
 
+  const token = localStorage.getItem('auth_token')
+  const headers = new Headers()
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+
   const response = await fetch('/api/data/import-csv', {
     method: 'POST',
     body: formData,
+    headers,
   })
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Unknown error' }))
@@ -25,10 +29,5 @@ export async function importCSV(files: File[]): Promise<{ success: boolean; resu
 }
 
 export async function clearData(): Promise<{ success: boolean; deleted?: Record<string, number | string> }> {
-  const response = await fetch('/api/data/clear', { method: 'POST' })
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Unknown error' }))
-    throw new Error(error.detail || `HTTP ${response.status}`)
-  }
-  return response.json()
+  return request('/api/data/clear', { method: 'POST' })
 }
