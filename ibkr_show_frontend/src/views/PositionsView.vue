@@ -224,6 +224,10 @@ const industryPieItems = computed(() => {
     }))
 })
 
+const optionItems = computed(() => {
+  return response.value?.items.filter((item) => item.asset_class === 'OPT') ?? []
+})
+
 onMounted(() => {
   void initialize()
 })
@@ -273,13 +277,32 @@ async function openPositionDetail(item: PositionItem): Promise<void> {
     <ErrorBlock v-else-if="errorMessage" :message="errorMessage" />
 
     <template v-else>
-      <section class="positions-summary-section">
+      <section class="positions-summary-section" :style="{ '--summary-columns': optionItems.length > 0 ? 4 : 3 }">
         <section class="surface-panel summary-card">
           <div class="surface-panel__content summary-panel--compact">
             <h3 class="summary-title">持仓集中度</h3>
             <div v-if="!summary || summary.top_positions.length === 0" class="empty-state empty-state--inline">暂无数据</div>
             <div v-else class="top-positions-list">
               <div v-for="(item, index) in summary.top_positions.slice(0, 5)" :key="`${item.asset_class}-${item.symbol}`" class="top-position-item">
+                <span class="top-position__rank">{{ index + 1 }}</span>
+                <div class="top-position__info">
+                  <strong>{{ item.symbol ?? '--' }}</strong>
+                  <span>{{ item.description?.slice(0, 20) ?? '无名称' }}</span>
+                </div>
+                <div class="top-position__value">
+                  <strong>{{ formatNumber(item.position_value, 2) }}</strong>
+                  <span>{{ item.percent_of_nav === null ? '--' : `${formatNumber(item.percent_of_nav, 2)}%` }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section v-if="optionItems.length > 0" class="surface-panel summary-card">
+          <div class="surface-panel__content summary-panel--compact">
+            <h3 class="summary-title">期权持仓</h3>
+            <div class="top-positions-list">
+              <div v-for="(item, index) in optionItems" :key="`${item.asset_class}-${item.symbol}`" class="top-position-item">
                 <span class="top-position__rank">{{ index + 1 }}</span>
                 <div class="top-position__info">
                   <strong>{{ item.symbol ?? '--' }}</strong>
@@ -362,7 +385,7 @@ async function openPositionDetail(item: PositionItem): Promise<void> {
 
 .positions-summary-section {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(var(--summary-columns, 3), 1fr);
   gap: var(--space-4);
   margin-bottom: var(--space-5);
 }
@@ -463,21 +486,13 @@ async function openPositionDetail(item: PositionItem): Promise<void> {
 
 @media (max-width: 1200px) {
   .positions-summary-section {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .positions-summary-section > :last-child {
-    grid-column: span 2;
+    --summary-columns: 2 !important;
   }
 }
 
 @media (max-width: 780px) {
   .positions-summary-section {
-    grid-template-columns: 1fr;
-  }
-
-  .positions-summary-section > * {
-    grid-column: auto !important;
+    --summary-columns: 1 !important;
   }
 }
 </style>
