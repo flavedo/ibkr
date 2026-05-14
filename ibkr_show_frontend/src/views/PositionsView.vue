@@ -104,40 +104,6 @@ function classifyAssetBucket(item: PositionListResponse['items'][number]): '股�
   return '其他'
 }
 
-function classifyIndustry(item: PositionListResponse['items'][number]): string {
-  const text = `${item.symbol ?? ''} ${item.description ?? ''}`.toUpperCase()
-
-  if (
-    text.includes('AMD') ||
-    text.includes('ARM') ||
-    text.includes('INTEL') ||
-    text.includes('QUALCOMM') ||
-    text.includes('SEMI')
-  ) {
-    return '半导体'
-  }
-  if (
-    text.includes('MICROSOFT') ||
-    text.includes('META') ||
-    text.includes('INTERACTIVE BROKERS') ||
-    text.includes('STRATEGY') ||
-    text.includes('SOFTWARE')
-  ) {
-    return '软件平台'
-  }
-  if (text.includes('AMAZON')) {
-    return '电商消费'
-  }
-  if (text.includes('TESLA')) {
-    return '汽车出行'
-  }
-  if (text.includes('XIAOMI')) {
-    return '消费电子'
-  }
-
-  return '其他'
-}
-
 function uniqueMembers(values: Array<string | null | undefined>): string[] {
   return Array.from(
     new Set(
@@ -146,19 +112,6 @@ function uniqueMembers(values: Array<string | null | undefined>): string[] {
         .filter((value) => value.length > 0),
     ),
   )
-}
-
-function industryDescription(label: string): string {
-  const mapping: Record<string, string> = {
-    半导体: '芯片 / 处理器 / 通信',
-    软件平台: '平台软件 / 社交 / 券商科技',
-    电商消费: '线上零售 / 云服务',
-    汽车出行: '新能源车 / 出行',
-    消费电子: '手机 / 智能终端',
-    其他: '未单独细分的持仓',
-  }
-
-  return mapping[label] ?? '行业聚合'
 }
 
 const assetPieItems = computed(() => {
@@ -199,29 +152,6 @@ const assetPieItems = computed(() => {
       members: ['USD 现金余额'],
     },
   ].filter((item) => item.value > 0)
-})
-
-const industryPieItems = computed(() => {
-  const palette = ['#56d5ff', '#6ee7b7', '#8b7cff', '#ffb454', '#ff7b98', '#7dd3fc', '#c084fc']
-  const buckets = new Map<string, { value: number; members: string[] }>()
-
-  response.value?.items.forEach((item) => {
-    const industry = classifyIndustry(item)
-    const current = buckets.get(industry) ?? { value: 0, members: [] }
-    current.value += item.position_value ?? 0
-    current.members.push(item.symbol ?? item.description ?? '--')
-    buckets.set(industry, current)
-  })
-
-  return Array.from(buckets.entries())
-    .sort((first, second) => second[1].value - first[1].value)
-    .map(([label, payload], index) => ({
-      label,
-      value: payload.value,
-      color: palette[index % palette.length],
-      note: industryDescription(label),
-      members: uniqueMembers(payload.members),
-    }))
 })
 
 const optionItems = computed(() => {
@@ -277,7 +207,7 @@ async function openPositionDetail(item: PositionItem): Promise<void> {
     <ErrorBlock v-else-if="errorMessage" :message="errorMessage" />
 
     <template v-else>
-      <section class="positions-summary-section" :style="{ '--summary-columns': optionItems.length > 0 ? 4 : 3 }">
+      <section class="positions-summary-section" :style="{ '--summary-columns': optionItems.length > 0 ? 3 : 2 }">
         <section class="surface-panel summary-card">
           <div class="surface-panel__content summary-panel--compact">
             <h3 class="summary-title">持仓集中度</h3>
@@ -324,12 +254,6 @@ async function openPositionDetail(item: PositionItem): Promise<void> {
           :format-number="formatNumber"
         />
 
-        <PieDistributionCard
-          title="行业分布"
-          subtitle="基于持仓代码的行业归类"
-          :items="industryPieItems"
-          :format-number="formatNumber"
-        />
       </section>
 
       <section class="surface-panel">
@@ -385,7 +309,7 @@ async function openPositionDetail(item: PositionItem): Promise<void> {
 
 .positions-summary-section {
   display: grid;
-  grid-template-columns: repeat(var(--summary-columns, 3), 1fr);
+  grid-template-columns: repeat(var(--summary-columns, 2), 1fr);
   gap: var(--space-4);
   margin-bottom: var(--space-5);
 }
