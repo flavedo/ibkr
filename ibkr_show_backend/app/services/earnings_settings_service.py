@@ -15,6 +15,8 @@ from app.services.financial_calendar_service import (
     _fetch_earnings_detail,
 )
 from app.services.market_sentiment_service import MarketSentimentService
+from app.services.macro_event_service import MacroEventService
+from app.schemas.financial_calendar import MacroEvent
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +170,46 @@ def _build_sentiment_html(sentiment: MarketSentimentResponse) -> str:
 </div>"""
 
 
+def _build_macro_events_html(events: list[MacroEvent]) -> str:
+    if not events:
+        return ""
+
+    importance_label = {"high": "高", "medium": "中", "low": "低"}
+    importance_color = {"high": "#ff6b7d", "medium": "#ffbd7a", "low": "#8a9bb5"}
+
+    rows = []
+    for evt in events:
+        color = importance_color.get(evt.importance, "#8a9bb5")
+        label = importance_label.get(evt.importance, "")
+        evt_time = evt.time or "--"
+        rows.append(f"""\
+<tr>
+  <td style="padding:8px;border-bottom:1px solid rgba(129,160,207,0.08)">{evt.date}</td>
+  <td style="padding:8px;border-bottom:1px solid rgba(129,160,207,0.08)">{evt_time}</td>
+  <td style="padding:8px;border-bottom:1px solid rgba(129,160,207,0.08)"><b>{evt.title}</b></td>
+  <td style="padding:8px;text-align:center;border-bottom:1px solid rgba(129,160,207,0.08)"><span style="color:{color}">{label}</span></td>
+  <td style="padding:8px;border-bottom:1px solid rgba(129,160,207,0.08);color:#8a9bb5">{evt.description}</td>
+</tr>""")
+
+    table_body = "\n".join(rows)
+    return f"""\
+<h2 style="color:#56d5ff;margin-top:28px">📊 美国重要经济事件</h2>
+<table style="width:100%;border-collapse:collapse;font-size:14px">
+<thead>
+<tr style="background:rgba(62,169,255,0.12);color:#8a9bb5">
+<th style="padding:8px;text-align:left;border-bottom:1px solid rgba(129,160,207,0.15)">日期</th>
+<th style="padding:8px;text-align:left;border-bottom:1px solid rgba(129,160,207,0.15)">时间(ET)</th>
+<th style="padding:8px;text-align:left;border-bottom:1px solid rgba(129,160,207,0.15)">事件</th>
+<th style="padding:8px;text-align:center;border-bottom:1px solid rgba(129,160,207,0.15)">重要性</th>
+<th style="padding:8px;text-align:left;border-bottom:1px solid rgba(129,160,207,0.15)">描述</th>
+</tr>
+</thead>
+<tbody>
+{table_body}
+</tbody>
+</table>"""
+
+
 def _send_email(
     smtp_server: str,
     smtp_port: int,
@@ -178,10 +220,11 @@ def _send_email(
     subject: str,
     html_body: str,
 ) -> None:
+    recipients = [addr.strip() for addr in target_email.split(",") if addr.strip()]
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = sender_email
-    msg["To"] = target_email
+    msg["To"] = ", ".join(recipients)
     msg.attach(MIMEText(html_body, "html", "utf-8"))
 
     # Try SMTP_SSL first (port 465), fall back to STARTTLS (port 587/25)
@@ -202,7 +245,7 @@ def _send_email(
                     server.starttls(context=ctx)
                     server.ehlo()
                 server.login(smtp_username, smtp_password)
-                server.sendmail(sender_email, [target_email], msg.as_string())
+                server.sendmail(sender_email, recipients, msg.as_string())
                 logger.info("Email sent via %s port %d (ssl=%s)", smtp_server, smtp_port, use_ssl)
                 return
         except smtplib.SMTPServerDisconnected as exc:
@@ -266,12 +309,17 @@ def trigger_daily_push() -> TestSendResponse:
         sentiment = MarketSentimentService().get_sentiment()
         sentiment_html = _build_sentiment_html(sentiment)
 
+        macro_service = MacroEventService()
+        macro_events = macro_service.get_events(today.isoformat(), end.isoformat())
+        macro_events_html = _build_macro_events_html(macro_events.items)
+
         stocks = _screen_earnings(today, end)
         if not stocks:
             body = f"""\
 <html>
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a1220;color:#e8edf5;padding:20px">
 {sentiment_html}
+{macro_events_html}
 <p style="color:#8a9bb5;margin-top:20px">今日无财报数据</p>
 <p style="color:#5a6b85;font-size:12px;margin-top:16px">由 ibkr_show 自动推送 · 数据来源 Yahoo Finance</p>
 </body>
@@ -283,7 +331,7 @@ def trigger_daily_push() -> TestSendResponse:
                 smtp_password=settings.smtp_password,
                 sender_email=settings.sender_email,
                 target_email=settings.target_email,
-                subject=f"🌡️ [{today}] 美股情绪观察",
+                subject=f"🌡️ [{today}] 美股情绪观察 & 经济事件",
                 html_body=body,
             )
             return TestSendResponse(success=True, message="今日无财报数据，已推送情绪观察")
@@ -300,6 +348,7 @@ def trigger_daily_push() -> TestSendResponse:
 <html>
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a1220;color:#e8edf5;padding:20px">
 {sentiment_html}
+{macro_events_html}
 {earnings_html}
 </body>
 </html>"""
@@ -310,7 +359,7 @@ def trigger_daily_push() -> TestSendResponse:
             smtp_password=settings.smtp_password,
             sender_email=settings.sender_email,
             target_email=settings.target_email,
-            subject=f"🌡️ [{today}] 美股情绪观察 & 财报日历 ({len(enriched)} 家公司)",
+            subject=f"🌡️ [{today}] 美股情绪观察 & 经济事件 & 财报日历 ({len(enriched)} 家公司)",
             html_body=body,
         )
         return TestSendResponse(success=True, message=f"推送成功，共 {len(enriched)} 家公司")
