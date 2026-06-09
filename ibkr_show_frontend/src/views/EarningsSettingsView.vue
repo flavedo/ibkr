@@ -196,12 +196,13 @@ onMounted(() => {
               </div>
 
               <div class="field-stack">
-                <label class="field-stack__label">目标邮箱（接收推送）</label>
+                <label class="field-stack__label">目标邮箱（接收推送，多个邮箱用逗号分隔）</label>
                 <InputText
                   v-model="settings.target_email"
-                  placeholder="you@example.com"
+                  placeholder="you@example.com, friend@example.com"
                   class="settings-input"
                 />
+                <span class="terminal-note">多个邮箱请用英文逗号（,）分隔</span>
               </div>
             </div>
 
