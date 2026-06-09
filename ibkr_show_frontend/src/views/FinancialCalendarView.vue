@@ -8,6 +8,7 @@ import { fetchEarningsCalendar } from '@/api/financialCalendar'
 import type { EarningsEvent } from '@/api/financialCalendar'
 import ErrorBlock from '@/components/ErrorBlock.vue'
 import LoadingBlock from '@/components/LoadingBlock.vue'
+import MacroEventCard from '@/components/MacroEventCard.vue'
 import MarketSentimentCard from '@/components/MarketSentimentCard.vue'
 
 const router = useRouter()
@@ -116,6 +117,22 @@ function formatDateRange(): { start: string; end: string } {
   const end = formatDate(endDate)
   return { start, end }
 }
+
+const macroDateRange = computed(() => {
+  if (viewMode.value === 'month') {
+    const y = currentYear.value
+    const m = currentMonth.value
+    const start = `${y}-${String(m).padStart(2, '0')}-01`
+    const end = m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, '0')}-01`
+    return { start, end }
+  }
+  // Show macro events for current week + next 3 weeks (month view in week mode)
+  const start = formatDate(currentWeekStart.value)
+  const endDate = new Date(currentWeekStart.value)
+  endDate.setDate(endDate.getDate() + 28)
+  const end = formatDate(endDate)
+  return { start, end }
+})
 
 function formatMarketcap(cap: number): string {
   if (cap >= 1e12) return `$${(cap / 1e12).toFixed(1)}T`
@@ -261,12 +278,21 @@ onMounted(() => {
         </div>
       </template>
     </Card>
+
+    <MacroEventCard
+      :start-date="macroDateRange.start"
+      :end-date="macroDateRange.end"
+    />
   </section>
 </template>
 
 <style scoped>
 .page-section :deep(.sentiment-card) {
   margin-bottom: var(--space-5);
+}
+
+.page-section :deep(.macro-card) {
+  margin-top: var(--space-5);
 }
 
 .calendar-panel__header {

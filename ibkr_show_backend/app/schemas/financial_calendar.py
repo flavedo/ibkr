@@ -19,3 +19,19 @@ class EarningsEvent(BaseModel):
 
 class EarningsCalendarResponse(BaseModel):
     items: list[EarningsEvent]
+
+
+class MacroEvent(BaseModel):
+    date: str = ""
+    title: str = ""
+    type: str = "other"
+    importance: str = "low"
+    description: str = ""
+    time: str | None = None
+    actual: str | None = None
+    expected: str | None = None
+    previous: str | None = None
+
+
+class MacroEventResponse(BaseModel):
+    items: list[MacroEvent]

@@ -38,3 +38,26 @@ export function fetchEarningsCalendar(startDate: string, endDate: string): Promi
     () => request<EarningsCalendarResponse>(`/api/financial-calendar/earnings${toQueryString({ start_date: startDate, end_date: endDate })}`)
   )
 }
+
+export interface MacroEvent {
+  date: string
+  title: string
+  type: 'nfp' | 'cpi' | 'fomc' | 'gdp' | 'ppi' | 'unemployment' | 'retail_sales' | 'other'
+  importance: 'high' | 'medium' | 'low'
+  description: string
+  time: string | null
+  actual: string | null
+  expected: string | null
+  previous: string | null
+}
+
+export interface MacroEventResponse {
+  items: MacroEvent[]
+}
+
+export function fetchMacroEvents(startDate: string, endDate: string): Promise<MacroEventResponse> {
+  return withCache(
+    `macro_${startDate}_${endDate}`,
+    () => request<MacroEventResponse>(`/api/financial-calendar/macro-events${toQueryString({ start_date: startDate, end_date: endDate })}`)
+  )
+}
