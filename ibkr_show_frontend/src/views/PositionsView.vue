@@ -147,7 +147,10 @@ const assetPieItems = computed(() => {
     const category = classifyAssetCategory(item)
     const current = buckets.get(category) ?? { value: 0, members: [] }
     current.value += item.position_value ?? 0
-    current.members.push(item.symbol ?? item.description ?? '--')
+    const displaySymbol = category === '期权'
+        ? ((item.symbol ?? '').split(' ')[0] || item.symbol || '--')
+        : item.symbol ?? item.description ?? '--'
+    current.members.push(displaySymbol)
     buckets.set(category, current)
   })
 
@@ -359,22 +362,36 @@ async function openPositionDetail(item: PositionItem): Promise<void> {
   grid-template-columns: 1fr 380px;
   gap: var(--space-4);
   margin-bottom: var(--space-5);
-  align-items: start;
 }
 
 .category-cards-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
-  align-content: start;
 }
 
 .summary-card {
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .summary-panel--compact {
   padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.summary-panel--compact .top-positions-list {
+  flex: 1;
+  justify-content: center;
+}
+
+.summary-panel--compact .empty-state--inline {
+  flex: 1;
+  display: grid;
+  place-items: center;
 }
 
 .top-positions-list {
