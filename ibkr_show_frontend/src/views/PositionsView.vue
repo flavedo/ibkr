@@ -84,21 +84,41 @@ function toneByNumber(value: number | null | undefined): 'positive' | 'negative'
   return value > 0 ? 'positive' : 'negative'
 }
 
-function classifyAssetBucket(item: PositionListResponse['items'][number]): '股票' | '固定收益' | '现金' | '其他' {
-  const description = `${item.description ?? ''}`.toUpperCase()
+const INDEX_ETF_SYMBOLS = new Set([
+  'SPY', 'QQQ', 'IWM', 'DIA', 'VOO', 'VTI', 'IVV',
+  'QQQI', 'SPYI', 'QQQJ', 'QQQM', 'IYW',
+])
+
+function classifyAssetCategory(item: PositionListResponse['items'][number]): '个股' | '指数' | '期权' | '债券' | '其他' {
+  if (item.asset_class === 'OPT') {
+    return '期权'
+  }
+
   const symbol = `${item.symbol ?? ''}`.toUpperCase()
+  const description = `${item.description ?? ''}`.toUpperCase()
 
   if (
     description.includes('TREASURY') ||
     description.includes('BOND') ||
     description.includes('0-3 MONTH') ||
-    symbol === 'SGOV'
+    item.asset_class === 'BOND' ||
+    symbol === 'SGOV' ||
+    symbol === 'BND' ||
+    symbol === 'TLT' ||
+    symbol === 'IEF' ||
+    symbol === 'SHY' ||
+    symbol === 'LQD' ||
+    symbol === 'HYG'
   ) {
-    return '固定收益'
+    return '债券'
+  }
+
+  if (INDEX_ETF_SYMBOLS.has(symbol)) {
+    return '指数'
   }
 
   if (item.asset_class === 'STK') {
-    return '股票'
+    return '个股'
   }
 
   return '其他'
@@ -116,33 +136,49 @@ function uniqueMembers(values: Array<string | null | undefined>): string[] {
 
 const assetPieItems = computed(() => {
   const buckets = new Map<string, { value: number; members: string[] }>([
-    ['股票', { value: 0, members: [] }],
-    ['固定收益', { value: 0, members: [] }],
+    ['个股', { value: 0, members: [] }],
+    ['指数', { value: 0, members: [] }],
+    ['期权', { value: 0, members: [] }],
+    ['债券', { value: 0, members: [] }],
     ['现金', { value: Math.max(overview.value?.cash ?? 0, 0), members: ['账户现金'] }],
   ])
 
   response.value?.items.forEach((item) => {
-    const bucket = classifyAssetBucket(item)
-    const current = buckets.get(bucket) ?? { value: 0, members: [] }
+    const category = classifyAssetCategory(item)
+    const current = buckets.get(category) ?? { value: 0, members: [] }
     current.value += item.position_value ?? 0
     current.members.push(item.symbol ?? item.description ?? '--')
-    buckets.set(bucket, current)
+    buckets.set(category, current)
   })
 
   return [
     {
-      label: '股票',
-      value: buckets.get('股票')?.value ?? 0,
+      label: '个股',
+      value: buckets.get('个股')?.value ?? 0,
       color: '#56d5ff',
-      note: '股票与 ADR 持仓',
-      members: uniqueMembers(buckets.get('股票')?.members ?? []),
+      note: '个股持仓',
+      members: uniqueMembers(buckets.get('个股')?.members ?? []),
     },
     {
-      label: '固定收益',
-      value: buckets.get('固定收益')?.value ?? 0,
+      label: '指数',
+      value: buckets.get('指数')?.value ?? 0,
+      color: '#fbbf24',
+      note: '指数 ETF 持仓',
+      members: uniqueMembers(buckets.get('指数')?.members ?? []),
+    },
+    {
+      label: '期权',
+      value: buckets.get('期权')?.value ?? 0,
+      color: '#f472b6',
+      note: '期权持仓',
+      members: uniqueMembers(buckets.get('期权')?.members ?? []),
+    },
+    {
+      label: '债券',
+      value: buckets.get('债券')?.value ?? 0,
       color: '#6ee7b7',
-      note: '国债 / 固收 ETF',
-      members: uniqueMembers(buckets.get('固定收益')?.members ?? []),
+      note: '债券持仓',
+      members: uniqueMembers(buckets.get('债券')?.members ?? []),
     },
     {
       label: '现金',
@@ -154,8 +190,29 @@ const assetPieItems = computed(() => {
   ].filter((item) => item.value > 0)
 })
 
+const stockItems = computed(() => {
+  return response.value?.items.filter((item) => classifyAssetCategory(item) === '个股') ?? []
+})
+
+const indexItems = computed(() => {
+  return response.value?.items.filter((item) => classifyAssetCategory(item) === '指数') ?? []
+})
+
 const optionItems = computed(() => {
   return response.value?.items.filter((item) => item.asset_class === 'OPT') ?? []
+})
+
+const bondItems = computed(() => {
+  return response.value?.items.filter((item) => classifyAssetCategory(item) === '债券') ?? []
+})
+
+const categoryCards = computed(() => {
+  return [
+    { key: 'stock', label: '个股持仓', items: stockItems.value, emptyText: '暂无个股持仓' },
+    { key: 'index', label: '指数持仓', items: indexItems.value, emptyText: '暂无指数持仓' },
+    { key: 'option', label: '期权持仓', items: optionItems.value, emptyText: '暂无期权持仓' },
+    { key: 'bond', label: '债券持仓', items: bondItems.value, emptyText: '暂无债券持仓' },
+  ]
 })
 
 onMounted(() => {
@@ -207,53 +264,43 @@ async function openPositionDetail(item: PositionItem): Promise<void> {
     <ErrorBlock v-else-if="errorMessage" :message="errorMessage" />
 
     <template v-else>
-      <section class="positions-summary-section" :style="{ '--summary-columns': optionItems.length > 0 ? 3 : 2 }">
-        <section class="surface-panel summary-card">
-          <div class="surface-panel__content summary-panel--compact">
-            <h3 class="summary-title">持仓集中度</h3>
-            <div v-if="!summary || summary.top_positions.length === 0" class="empty-state empty-state--inline">暂无数据</div>
-            <div v-else class="top-positions-list">
-              <div v-for="(item, index) in summary.top_positions.slice(0, 5)" :key="`${item.asset_class}-${item.symbol}`" class="top-position-item">
-                <span class="top-position__rank">{{ index + 1 }}</span>
-                <div class="top-position__info">
-                  <strong>{{ item.symbol ?? '--' }}</strong>
-                  <span>{{ item.description?.slice(0, 20) ?? '无名称' }}</span>
-                </div>
-                <div class="top-position__value">
-                  <strong>{{ formatNumber(item.position_value, 2) }}</strong>
-                  <span>{{ item.percent_of_nav === null ? '--' : `${formatNumber(item.percent_of_nav, 2)}%` }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section v-if="optionItems.length > 0" class="surface-panel summary-card">
-          <div class="surface-panel__content summary-panel--compact">
-            <h3 class="summary-title">期权持仓</h3>
-            <div class="top-positions-list">
-              <div v-for="(item, index) in optionItems" :key="`${item.asset_class}-${item.symbol}`" class="top-position-item">
-                <span class="top-position__rank">{{ index + 1 }}</span>
-                <div class="top-position__info">
-                  <strong>{{ item.symbol ?? '--' }}</strong>
-                  <span>{{ item.description?.slice(0, 20) ?? '无名称' }}</span>
-                </div>
-                <div class="top-position__value">
-                  <strong>{{ formatNumber(item.position_value, 2) }}</strong>
-                  <span>{{ item.percent_of_nav === null ? '--' : `${formatNumber(item.percent_of_nav, 2)}%` }}</span>
+      <section class="positions-summary-section">
+        <section class="category-cards-grid">
+          <section
+            v-for="card in categoryCards"
+            :key="card.key"
+            class="surface-panel summary-card"
+          >
+            <div class="surface-panel__content summary-panel--compact">
+              <h3 class="summary-title">{{ card.label }}</h3>
+              <div v-if="card.items.length === 0" class="empty-state empty-state--inline">{{ card.emptyText }}</div>
+              <div v-else class="top-positions-list">
+                <div
+                  v-for="(item, index) in card.items.slice(0, 5)"
+                  :key="`${card.key}-${item.symbol ?? index}`"
+                  class="top-position-item"
+                >
+                  <span class="top-position__rank">{{ index + 1 }}</span>
+                  <div class="top-position__info">
+                    <strong>{{ item.symbol ?? '--' }}</strong>
+                    <span>{{ item.description?.slice(0, 20) ?? '无名称' }}</span>
+                  </div>
+                  <div class="top-position__value">
+                    <strong>{{ formatNumber(item.position_value, 2) }}</strong>
+                    <span>{{ item.percent_of_nav === null ? '--' : `${formatNumber(item.percent_of_nav, 2)}%` }}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </section>
         </section>
 
         <PieDistributionCard
           title="资金类别"
-          subtitle="股票、固定收益与现金占比"
+          subtitle="个股、指数、期权、债券与现金占比"
           :items="assetPieItems"
           :format-number="formatNumber"
         />
-
       </section>
 
       <section class="surface-panel">
@@ -309,9 +356,17 @@ async function openPositionDetail(item: PositionItem): Promise<void> {
 
 .positions-summary-section {
   display: grid;
-  grid-template-columns: repeat(var(--summary-columns, 2), 1fr);
+  grid-template-columns: 1fr 380px;
   gap: var(--space-4);
   margin-bottom: var(--space-5);
+  align-items: start;
+}
+
+.category-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  align-content: start;
 }
 
 .summary-card {
@@ -410,13 +465,21 @@ async function openPositionDetail(item: PositionItem): Promise<void> {
 
 @media (max-width: 1200px) {
   .positions-summary-section {
-    --summary-columns: 2 !important;
+    grid-template-columns: 1fr 320px;
+  }
+
+  .category-cards-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
 @media (max-width: 780px) {
   .positions-summary-section {
-    --summary-columns: 1 !important;
+    grid-template-columns: 1fr;
+  }
+
+  .category-cards-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
