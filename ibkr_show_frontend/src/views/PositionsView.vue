@@ -385,7 +385,6 @@ async function openPositionDetail(item: PositionItem): Promise<void> {
 
 .summary-panel--compact .top-positions-list {
   flex: 1;
-  justify-content: center;
 }
 
 .summary-panel--compact .empty-state--inline {
