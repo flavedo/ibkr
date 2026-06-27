@@ -168,9 +168,9 @@ const assetPieItems = computed(() => {
     },
     {
       label: '期权',
-      value: buckets.get('期权')?.value ?? 0,
+      value: Math.abs(buckets.get('期权')?.value ?? 0),
       color: '#f472b6',
-      note: '期权持仓',
+      note: '当前市值规模（平仓成本），权利金已计入现金',
       members: uniqueMembers(buckets.get('期权')?.members ?? []),
     },
     {
