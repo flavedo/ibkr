@@ -48,6 +48,9 @@ def save_settings(settings: EarningsPushSettings) -> EarningsPushSettings:
     from app.core.earnings_scheduler import reschedule_push
     reschedule_push()
 
+    from app.core.data_fetch_scheduler import reschedule_fetch
+    reschedule_fetch()
+
     return settings
 
 

@@ -9,6 +9,8 @@ export interface EarningsPushSettings {
   smtp_password: string
   sender_email: string
   target_email: string
+  fetch_enabled: boolean
+  fetch_time: string
 }
 
 export interface TestSendResult {

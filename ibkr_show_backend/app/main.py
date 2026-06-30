@@ -9,6 +9,8 @@ from app.api.routes import api_router, health_router
 from app.core.auth import verify_token
 from app.core.config import get_settings
 from app.core.cors import configure_cors
+from app.core.data_fetch_scheduler import start_scheduler as start_data_fetch_scheduler
+from app.core.data_fetch_scheduler import stop_scheduler as stop_data_fetch_scheduler
 from app.core.earnings_scheduler import start_scheduler, stop_scheduler
 from app.core.logger import configure_logging
 
@@ -42,9 +44,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
+    start_data_fetch_scheduler()
     start_scheduler()
     yield
     stop_scheduler()
+    stop_data_fetch_scheduler()
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)

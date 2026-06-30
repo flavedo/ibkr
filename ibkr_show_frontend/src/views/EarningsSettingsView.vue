@@ -7,6 +7,7 @@ import InputNumber from 'primevue/inputnumber'
 import ToggleSwitch from 'primevue/toggleswitch'
 
 import { fetchPushSettings, sendTestEmail, triggerDailyPush, updatePushSettings } from '@/api/earningsSettings'
+import { triggerDataRefresh } from '@/api/data'
 import type { EarningsPushSettings } from '@/api/earningsSettings'
 import ErrorBlock from '@/components/ErrorBlock.vue'
 import LoadingBlock from '@/components/LoadingBlock.vue'
@@ -20,12 +21,15 @@ const settings = ref<EarningsPushSettings>({
   smtp_password: '',
   sender_email: '',
   target_email: '',
+  fetch_enabled: false,
+  fetch_time: '14:00',
 })
 
 const loading = ref(true)
 const saving = ref(false)
 const testing = ref(false)
 const triggering = ref(false)
+const refreshing = ref(false)
 const errorMessage = ref('')
 
 const toastMessage = ref('')
@@ -97,6 +101,18 @@ async function handleTriggerPush(): Promise<void> {
     showToast(error instanceof Error ? error.message : '推送触发失败', 'error')
   } finally {
     triggering.value = false
+  }
+}
+
+async function handleRefreshNow(): Promise<void> {
+  refreshing.value = true
+  try {
+    await triggerDataRefresh()
+    showToast('数据拉取已完成', 'success')
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : '数据拉取失败', 'error')
+  } finally {
+    refreshing.value = false
   }
 }
 
@@ -232,6 +248,61 @@ onMounted(() => {
               </div>
               <div class="settings-actions__hint">
                 <span class="terminal-note">SMTP 密钥建议使用邮箱的"应用专用密码"</span>
+              </div>
+            </div>
+          </div>
+        </template>
+      </Card>
+
+      <Card class="surface-panel">
+        <template #content>
+          <div class="surface-panel__content">
+            <div class="card-header">
+              <div>
+                <h2 class="panel-title">⏰ 定时数据拉取</h2>
+                <p class="panel-subtitle">每天固定时间自动执行数据刷新，拉取最新的 IBKR 持仓、交易、出入金等数据。</p>
+              </div>
+              <div class="toggle-wrapper">
+                <label class="toggle-label" :class="{ 'toggle-label--active': settings.fetch_enabled }">
+                  {{ settings.fetch_enabled ? '已开启' : '已关闭' }}
+                </label>
+                <ToggleSwitch v-model="settings.fetch_enabled" />
+              </div>
+            </div>
+
+            <div class="settings-grid">
+              <div class="field-stack field-stack--full">
+                <label class="field-stack__label">每日拉取时间（UTC）</label>
+                <div class="time-picker-row">
+                  <InputText
+                    v-model="settings.fetch_time"
+                    type="time"
+                    class="settings-input time-input"
+                  />
+                  <span class="terminal-note">每天 {{ settings.fetch_time || '14:00' }} UTC（北京时间 {{ settings.fetch_time ? `${String(Number(settings.fetch_time.split(':')[0]) + 8).padStart(2, '0')}:${settings.fetch_time.split(':')[1]}` : '22:00' }}）自动拉取数据</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-actions">
+              <div class="settings-actions__left">
+                <Button
+                  label="保存设置"
+                  icon="pi pi-check"
+                  class="p-button"
+                  :loading="saving"
+                  @click="handleSave"
+                />
+                <Button
+                  label="立即拉取"
+                  icon="pi pi-refresh"
+                  class="p-button p-button--ghost"
+                  :loading="refreshing"
+                  @click="handleRefreshNow"
+                />
+              </div>
+              <div class="settings-actions__hint">
+                <span class="terminal-note">北京时间 = UTC + 8 小时</span>
               </div>
             </div>
           </div>

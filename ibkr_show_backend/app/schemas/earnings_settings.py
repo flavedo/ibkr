@@ -10,6 +10,8 @@ class EarningsPushSettings(BaseModel):
     smtp_password: str = ""
     sender_email: str = ""
     target_email: str = ""
+    fetch_enabled: bool = False
+    fetch_time: str = "14:00"
 
 
 class TestSendRequest(BaseModel):
