@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from app.services.earnings_settings_service import load_settings
+from app.services.settings_service import load_settings
 
 logger = logging.getLogger(__name__)
 

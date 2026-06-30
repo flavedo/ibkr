@@ -6,13 +6,13 @@ import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import ToggleSwitch from 'primevue/toggleswitch'
 
-import { fetchPushSettings, sendTestEmail, triggerDailyPush, updatePushSettings } from '@/api/earningsSettings'
+import { fetchSettings, sendTestEmail, triggerDailyPush, updateSettings } from '@/api/settings'
 import { triggerDataRefresh } from '@/api/data'
-import type { EarningsPushSettings } from '@/api/earningsSettings'
+import type { SystemSettings } from '@/api/settings'
 import ErrorBlock from '@/components/ErrorBlock.vue'
 import LoadingBlock from '@/components/LoadingBlock.vue'
 
-const settings = ref<EarningsPushSettings>({
+const settings = ref<SystemSettings>({
   enabled: false,
   push_time: '09:00',
   smtp_server: '',
@@ -49,7 +49,7 @@ async function loadSettings(): Promise<void> {
   loading.value = true
   errorMessage.value = ''
   try {
-    const data = await fetchPushSettings()
+    const data = await fetchSettings()
     settings.value = data
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '加载设置失败'
@@ -61,7 +61,7 @@ async function loadSettings(): Promise<void> {
 async function handleSave(): Promise<void> {
   saving.value = true
   try {
-    const result = await updatePushSettings(settings.value)
+    const result = await updateSettings(settings.value)
     settings.value = result
     showToast('设置已保存', 'success')
   } catch (error) {
@@ -126,8 +126,8 @@ onMounted(() => {
     <div class="section-header">
       <div>
         <p class="eyebrow">Settings</p>
-        <h1 class="page-hero__title">财报推送设置</h1>
-        <p class="page-hero__subtitle">配置每日美股财报日历的邮件推送功能。</p>
+        <h1 class="page-hero__title">系统设置</h1>
+        <p class="page-hero__subtitle">配置定时数据拉取、财报邮件推送等功能。</p>
       </div>
     </div>
 
